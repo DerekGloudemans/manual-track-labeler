@@ -24,9 +24,9 @@ import _pickle as pickle
 
 
 # filter and frame loader
-from util_track.mp_loader import FrameLoader
-from util_track.kf import Torch_KF
-from util_track.mp_writer import OutputWriter
+from util.mp_loader import FrameLoader
+from util.kf import Torch_KF
+from util.mp_writer import OutputWriter
 
 
 
@@ -38,21 +38,10 @@ class Localization_Tracker():
                  localizer,
                  kf_params,
                  class_dict,
-                 det_step = 1,
-                 init_frames = 1,
-                 fsld_max = 1,
-                 matching_cutoff = 100,
-                 iou_cutoff = 0.5,
-                 det_conf_cutoff = 0.5,
-                 ber = 2.0,
+                 config_file,
                  PLOT = True,
-                 OUT = None,
-                 skip_step = 1,
-                 downsample = 1,
-                 distance_mode = "iou",
-                 cs = 224,
                  device_id = 0,
-                 trim = 0):
+                 OUT = None):
         """
          Parameters
         ----------
@@ -80,21 +69,32 @@ class Localization_Tracker():
             If True, resulting frames are output. The default is True. 
         """
         
+        # parse config file here
+        params = self.parse_config_file(config_file)[0]
         #store parameters
-        self.d = det_step
-        self.s = skip_step
-        self.init_frames = init_frames
-        self.fsld_max = fsld_max
-        self.matching_cutoff = matching_cutoff
-        self.iou_cutoff = iou_cutoff
-        self.det_conf_cutoff = det_conf_cutoff
-        self.ber = ber
-        self.PLOT = PLOT
+        self.distance_mode    = "iou"
+        self.d                = params["det_step"]
+        self.s                = params["skip_step"]
+        self.fsld_max         = params["fsld_max"]
+        self.fsld_keep        = params["fsld_keep"]
+        self.ber              = params["ber"]
+        self.det_conf_cutoff  = params["conf_new"]
+        self.iou_overlap      = params["iou_overlap"]
+        self.matching_cutoff  = params["iou_match"]
+        self.conf_loc         = params["conf_loc"]
+        self.iou_loc          = params["iou_loc"]
+        self.cs = cs          = params["cs"]
+        self.W                = params["W"]
+        self.downsample       = params["downsample"]
+        self.trim_last        = 0 
+        self.PLOT             = PLOT
+        
+        # store filter params
+        kf_params["R"]       /= params["R_red"]
+        kf_params["Q"]       /= params["Q_red"]       
+        self.filter           = Torch_KF(torch.device("cpu"),INIT = kf_params)
         self.state_size = kf_params["Q"].shape[0]
-        self.downsample = downsample
-        self.distance_mode = distance_mode
-        self.cs = cs
-        self.trim_last = trim
+        
         # CUDA
         use_cuda = torch.cuda.is_available()
         self.device = torch.device("cuda:{}".format(device_id) if use_cuda else "cpu")
@@ -111,11 +111,10 @@ class Localization_Tracker():
         self.detector = detector.to(self.device)
         detector.eval()
        
-        # store filter params
-        self.filter = Torch_KF(torch.device("cpu"),INIT = kf_params)
        
-        self.loader = FrameLoader(track_dir,self.device,det_step,init_frames,downsample = downsample)
-        #self.track_id = int(track_dir.split("MVI_")[-1])
+        # get frame loader (fls controls how often FrameLoader sends an actual frame)
+        fls = 1 if self.PLOT else self.s
+        self.loader = FrameLoader(track_dir,self.device,downsample = self.downsample,s = fls,show = self.PLOT)
         
         # create output image writer
         if OUT is not None:
@@ -132,7 +131,8 @@ class Localization_Tracker():
         self.all_tracks = {}             # stores states for each object
         self.all_classes = {}            # stores class evidence for each object
         self.all_confs = {}
-    
+        self.all_first_frames = {}
+        
         self.class_dict = class_dict
     
         # for keeping track of what's using time
@@ -151,9 +151,55 @@ class Localization_Tracker():
             "plot":0
             }
         
-        self.idx_colors = np.random.rand(10000,3)
+        self.idx_colors = np.random.rand(100,3)
     
-    def manage_tracks(self,detections,matchings,pre_ids):
+    def parse_config_file(self,config_file):
+        """
+        Parses and returns config file
+        """
+        all_blocks = []
+        current_block = {}
+        with open(config_file, 'r') as f:
+            for line in f:
+                # ignore empty lines and comment lines
+                if line is None or len(line.strip()) == 0 or line[0] == '#':
+                    continue
+                strip_line = line.split("#")[0].strip()
+    
+                if '==' in strip_line:
+                    pkey, pval = strip_line.split('==')
+                    pkey = pkey.strip()
+                    pval = pval.strip()
+                    
+                    # parse out non-string values
+                    try:
+                        pval = int(pval)
+                    except ValueError:
+                        try:    
+                            pval = float(pval)    
+                        except ValueError:
+                            pass 
+                    if pval == "None":
+                        pval = None
+                    elif pval == "True":
+                        pval = True
+                    elif pval == "False":
+                        pval = False
+                    elif type(pval) == str and "," in pval:
+                        pval = [int(item) for item in pval.split(",")]
+                        
+                    current_block[pkey] = pval
+                    
+                else:
+                    raise AttributeError("""Got a line in the configuration file that isn't a block header nor a 
+                    key=value.\nLine: {}""".format(strip_line))
+            # add the last block of the file (if it's non-empty)
+            all_blocks.append(current_block)
+            
+        return all_blocks
+    
+    
+    def manage_tracks(self,detections,matchings,pre_ids,frame_num):
         """
         Updates each detection matched to an existing tracklet, adds new tracklets 
         for unmatched detections, and increments counters / removes tracklets not matched
@@ -204,6 +250,7 @@ class Localization_Tracker():
                 self.all_tracks[self.next_obj_id] = np.zeros([self.n_frames,self.state_size])
                 self.all_classes[self.next_obj_id] = np.zeros(14)
                 self.all_confs[self.next_obj_id] = []
+                self.all_first_frames[self.next_obj_id] = frame_num
                 
                 cls = int(detections[i,4])
                 self.all_classes[self.next_obj_id][cls] += 1
@@ -270,8 +317,11 @@ class Localization_Tracker():
         new_boxes[:,3] = boxes[:,0] + box_scales/2 
         new_boxes[:,2] = boxes[:,1] - box_scales/2 
         new_boxes[:,4] = boxes[:,1] + box_scales/2 
+        #new_boxes /= self.downsample
+
         torch_boxes = torch.from_numpy(new_boxes).float().to(self.device)
-    
+        torch_boxes /= self.downsample
+        
         # crop using roi align 
         crops = roi_align(frame.unsqueeze(0),torch_boxes,(self.cs,self.cs))
         self.time_metrics['pre_localize and align'] += time.time() - start
@@ -348,6 +398,7 @@ class Localization_Tracker():
         detections[:,:,2] = detections[:,:,2]*box_scales/self.cs + new_boxes[:,:,1]
         detections[:,:,1] = detections[:,:,1]*box_scales/self.cs + new_boxes[:,:,2]
         detections[:,:,3] = detections[:,:,3]*box_scales/self.cs + new_boxes[:,:,2]
+        
 
         # convert into xysr form 
         # output = np.zeros([len(detections),4])
@@ -364,14 +415,14 @@ class Localization_Tracker():
         Checks IoU between each set of tracklet objects and removes the newer tracklet
         when they overlap more than iou_cutoff (likely indicating a tracklet has drifted)
         """
-        if self.iou_cutoff > 0:
+        if self.iou_overlap > 0:
             removals = []
             locations = self.filter.objs()
             for i in locations:
                 for j in locations:
                     if i != j:
                         iou_metric = self.iou(locations[i],locations[j])
-                        if iou_metric > self.iou_cutoff:
+                        if iou_metric > self.iou_overlap:
                             # determine which object has been around longer
                             if len(self.all_classes[i]) > len(self.all_classes[j]):
                                 removals.append(j)
@@ -389,9 +440,10 @@ class Localization_Tracker():
         locations = self.filter.objs()
         for i in locations:
             if (locations[i][2]-locations[i][0]) > max_scale or (locations[i][2]-locations[i][0]) < 0:
-                removals.append(i)
+                removals.append(i)                
             elif (locations[i][3] - locations[i][1]) > max_scale or (locations [i][3] - locations[i][1]) < 0:
                 removals.append(i)
+            
         self.filter.remove(removals)         
     
     def iou(self,a,b):
@@ -478,7 +530,7 @@ class Localization_Tracker():
             bbox = post_locations[id][:4]
             
             if sum(bbox) != 0: # all 0's is the default in the storage array, so ignore these
-                color = self.idx_colors[id]
+                color = self.idx_colors[id%len(self.idx_colors)]
                 c1 =  (int(bbox[0]),int(bbox[1]))
                 c2 =  (int(bbox[2]),int(bbox[3]))
                 cv2.rectangle(im,c1,c2,color,2)
@@ -641,7 +693,9 @@ class Localization_Tracker():
         """    
         
         self.start_time = time.time()
-        frame_num, (frame,dim,original_im) = next(self.loader)            
+        [frame_num, frame,dim,original_im] = next(self.loader)   
+        self.frame_size = frame.shape        
+        self.time_metrics["load"] += time.time() - self.start_time         
 
         while frame_num != -1:            
             
@@ -669,7 +723,7 @@ class Localization_Tracker():
             # except:
             #     pass
             
-            if frame_num % self.d < self.init_frames:  
+            if frame_num % self.d == 0:  
                 
                 # detection step
                 try: # use CNN detector
@@ -707,7 +761,7 @@ class Localization_Tracker():
                 self.time_metrics['match'] += time.time() - start
                 
                 # Update tracked objects
-                self.manage_tracks(detections,matchings,pre_ids)
+                self.manage_tracks(detections,matchings,pre_ids,frame_num)
                 
             # skip  if there are no active tracklets or no localizer (KF prediction with no update)    
             elif len(pre_locations) > 0 and self.localizer is not None and (frame_num % self.d)%self.s == 0:
@@ -721,11 +775,8 @@ class Localization_Tracker():
                 with torch.no_grad():                       
                      reg_boxes, classes = self.localizer(crops,LOCALIZE = True)
 
-
                     
                 del crops
-                torch.cuda.empty_cache()
-                torch.cuda.synchronize()
                 self.time_metrics['localize'] += time.time() - start
                 start = time.time()
                 
@@ -734,11 +785,13 @@ class Localization_Tracker():
                 
                 reg_boxes = reg_boxes.data.cpu()
                 classes = classes.data.cpu()
+
                 self.time_metrics["load"] += time.time() - start
                 start = time.time()
 
                 reg_boxes = self.local_to_global(reg_boxes,box_scales,new_boxes)
-                
+                #reg_boxes = reg_boxes * self.downsample
+
                 # parse retinanet detections
                 confs,classes = torch.max(classes, dim = 2)
                 
@@ -751,7 +804,7 @@ class Localization_Tracker():
                 
                 if self.distance_mode == "iou":
                     iou_score = self.md_iou(a_priori.double(),reg_boxes.double())
-                    score = 0.2*confs + iou_score
+                    score = self.W*confs + iou_score
                 
                 else:
                     x_diff = torch.abs(a_priori[:,:,0] + a_priori[:,:,2] - (reg_boxes[:,:,0] + reg_boxes[:,:,2]) )
@@ -781,7 +834,7 @@ class Localization_Tracker():
                     
                     if self.distance_mode == "iou":
                         for i in range(len(detections)):
-                            if confs[i] < 0.4 or ious[i] < 0.7:
+                            if (confs[i] < self.conf_loc or ious[i] < self.iou_loc) and frame_num - self.all_first_frames[box_ids[i]] < self.fsld_keep:
                                 self.fsld[box_ids[i]] += 1
                             else:
                                 self.fsld[box_ids[i]] = 0
@@ -816,13 +869,10 @@ class Localization_Tracker():
                         self.fsld.pop(id,None) # remove key from fsld
                 if len(removals) > 0:
                     self.filter.remove(removals)  
-        
-                # remove overlapping objects and anomalies
-                self.remove_overlaps()
-                self.remove_anomalies()
-                
-                
-                  
+    
+            # remove overlapping objects and anomalies
+            self.remove_overlaps()
+            self.remove_anomalies()
                 
             # get all object locations and store in output dict
             start = time.time()
@@ -844,18 +894,18 @@ class Localization_Tracker():
                 self.plot(original_im,detections,post_locations,self.all_classes,self.class_dict,frame = frame_num)
             self.time_metrics['plot'] += time.time() - start
        
-            # load next frame  
+            # load next frame 
             start = time.time()
-            frame_num ,(frame,dim,original_im) = next(self.loader) 
-            torch.cuda.synchronize()
-            self.time_metrics["load"] = time.time() - start
-            torch.cuda.empty_cache()
-            
-            print("\rTracking frame {} of {}".format(frame_num,self.n_frames), end = '\r', flush = True)
+            [frame_num, frame,dim,original_im] = next(self.loader)            
+            self.time_metrics["load"] += time.time() - start
+            fps = round(frame_num/(time.time() - self.start_time),2)
+            fps_noload = round(frame_num/(time.time()-self.start_time-self.time_metrics["load"] - self.time_metrics["plot"]),2)
+            print("\rTracking frame {} of {}. {} FPS ({} FPS without loading)".format(frame_num,self.n_frames,fps,fps_noload), end = '\r', flush = True)
             
             
         # clean up at the end
         self.end_time = time.time()
+        torch.cuda.empty_cache()
         cv2.destroyAllWindows()
         
     def get_results(self):

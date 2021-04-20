@@ -23,7 +23,7 @@ import torch.multiprocessing as mp
 
 class FrameLoader():
     
-    def __init__(self,track_directory,device, det_step, init_frames, buffer_size = 9,downsample = 1):
+    def __init__(self,track_directory,device,buffer_size = 9,downsample = 1,s=1,show = True):
         
         """
         Parameters
@@ -49,9 +49,9 @@ class FrameLoader():
             
             self.files = files
             self.downsample = downsample
+            self.s = s
             
-            manager = mp.Manager()
-            self.det_step = manager.Value("i",det_step)
+            #manager = mp.Manager()
             
             #self.det_step = det_step
             self.init_frames = init_frames
@@ -61,10 +61,10 @@ class FrameLoader():
             #mp.set_start_method('spawn')
             ctx = mp.get_context('spawn')
             self.queue = ctx.Queue()
-            
+            #self.cache = ctx.Value(torch.Tensor)
             self.frame_idx = -1
             
-            self.worker = ctx.Process(target=load_to_queue, args=(self.queue,files,self.det_step,init_frames,device,buffer_size,self.downsample))
+            self.worker = ctx.Process(target=load_to_queue, args=(self.queue,files,device,buffer_size,self.downsample))
             self.worker.start()
             time.sleep(5)
         
@@ -72,12 +72,11 @@ class FrameLoader():
             sequence = track_directory
             
             self.sequence = sequence
-        
+            self.s = s
+            
             manager = mp.Manager()
-            self.det_step = manager.Value("i",det_step)
             
             #self.det_step = det_step
-            self.init_frames = init_frames
             self.device = device
         
             # create shared queue
@@ -87,9 +86,13 @@ class FrameLoader():
             
             self.frame_idx = -1
             
-            self.len = 30*5*60
+            cap = cv2.VideoCapture(sequence)
+            length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            self.len = length
+            cap.release()
+            time.sleep(1)
             
-            self.worker = ctx.Process(target=load_to_queue_video, args=(self.queue,sequence,device,buffer_size,))
+            self.worker = ctx.Process(target=load_to_queue_video, args=(self.queue,sequence,device,buffer_size,self.s,downsample,show))
             self.worker.start()
             time.sleep(5)
         
@@ -121,18 +124,22 @@ class FrameLoader():
         """
         
         if self.frame_idx < len(self) -1:
-        
-            frame = self.queue.get(timeout = 10)
+            while True: # no error if no frame
+                try:
+                    frame = self.queue.get(timeout = 0)
+                    break
+                except:
+                    time.sleep(1)
+                
             self.frame_idx = frame[0]
-            frame = frame[1:]
-            return self.frame_idx, frame
+            return frame
         
         else:
             self.worker.terminate()
             self.worker.join()
-            return -1,(None,None,None)
+            return [-1,None,None,None]
 
-def load_to_queue(image_queue,files,det_step,init_frames,device,queue_size,downsample):
+def load_to_queue(image_queue,files,device,queue_size,downsample):
     """
     Description
     -----------
@@ -202,37 +209,60 @@ def load_to_queue(image_queue,files,det_step,init_frames,device,queue_size,downs
     while True:  
            time.sleep(5)
         
-def load_to_queue_video(image_queue,sequence,device,queue_size):
+def load_to_queue_video(image_queue,sequence,device,queue_size,s,downsample,show):
     
     cap = cv2.VideoCapture(sequence)
-    
+    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
     frame_idx = 0    
-    while frame_idx < 30*5*60:
+    while frame_idx < length:
         
         if image_queue.qsize() < queue_size:
             
+            if frame_idx % s == 0: # don't skip
             
+                # load next image from videocapture object
+                ret,original_im = cap.read()
+                if ret == False:
+                    frame = (-1,None,None,None)
+                    image_queue.put(frame)       
+                    break
+                else:
+                    if downsample != 1:   
+                        size1 = original_im.shape[0] //downsample
+                        size2 = original_im.shape[1] //downsample
+                        im_copy = original_im.copy()
+                        im_copy = cv2.resize(im_copy,(size2,size1))
+                        im = F.to_tensor(im_copy)
+                    
+                    else:
+                        im = F.to_tensor(original_im)
+
+                    im = F.normalize(im,mean=[0.485, 0.456, 0.406],
+                                              std=[0.229, 0.224, 0.225])
+                    # store preprocessed image, dimensions and original image
+                    im = im.to(device)
+                    dim = None
+                    if show:
+                        frame = (frame_idx,im,dim,original_im)
+                    else:
+                        frame = (frame_idx,im,dim,None)
+                    # append to queue
+                    image_queue.put(frame)       
+                    frame_idx += 1
             
-            # load next image from videocapture object
-            ret,original_im = cap.read()
-            if ret == False:
-                frame = (-1,None,None,None)
-                image_queue.put(frame)       
-                break
-            else:
-                original_im = cv2.resize(original_im,(1920,1080))
-                im = F.to_tensor(original_im)
-                im = F.normalize(im,mean=[0.485, 0.456, 0.406],
-                                          std=[0.229, 0.224, 0.225])
-                # store preprocessed image, dimensions and original image
-                im = im.to(device)
-                dim = None
-                frame = (frame_idx,im,dim,original_im)
-             
-                # append to queue
-                image_queue.put(frame)       
-                frame_idx += 1
-    
+            else: # load dummy info, won't be used
+                # load next image from videocapture object
+                ret = cap.grab()
+                if ret == False:
+                    frame = (-1,None,None,None)
+                    image_queue.put(frame)       
+                    break
+                else:
+                    frame = (frame_idx,None,None,None)
+                    image_queue.put(frame)       
+                    frame_idx += 1
+                    
     # neverending loop, because if the process ends, the tensors originally
     # initialized in this function will be deleted, causing issues. Thus, this 
     # function runs until a call to self.next() returns -1, indicating end of track 
