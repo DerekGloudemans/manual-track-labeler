@@ -91,7 +91,8 @@ class Localization_Tracker():
         
         # store filter params
         kf_params["R"]       /= params["R_red"]
-        kf_params["Q"]       /= params["Q_red"]       
+        kf_params["Q"]       /= params["Q_red"]     
+        kf_params["P"][4:,4:] *= 100
         self.filter           = Torch_KF(torch.device("cpu"),INIT = kf_params)
         self.state_size = kf_params["Q"].shape[0]
         
@@ -274,7 +275,7 @@ class Localization_Tracker():
         # 8a. remove lost objects
         removals = []
         for id in pre_ids:
-            if self.fsld[id] >= self.fsld_max:
+            if self.fsld[id] >= self.fsld_max and frame_num - self.all_first_frames[id] < self.fsld_keep:
                 removals.append(id)
                 self.fsld.pop(id,None) # remove key from fsld
         if len(removals) > 0:
@@ -424,7 +425,7 @@ class Localization_Tracker():
                         iou_metric = self.iou(locations[i],locations[j])
                         if iou_metric > self.iou_overlap:
                             # determine which object has been around longer
-                            if len(self.all_classes[i]) > len(self.all_classes[j]):
+                            if self.all_first_frames[j] > self.all_first_frames[i]:
                                 removals.append(j)
                             else:
                                 removals.append(i)
@@ -834,7 +835,7 @@ class Localization_Tracker():
                     
                     if self.distance_mode == "iou":
                         for i in range(len(detections)):
-                            if (confs[i] < self.conf_loc or ious[i] < self.iou_loc) and frame_num - self.all_first_frames[box_ids[i]] < self.fsld_keep:
+                            if (confs[i] < self.conf_loc or ious[i] < self.iou_loc):
                                 self.fsld[box_ids[i]] += 1
                             else:
                                 self.fsld[box_ids[i]] = 0
@@ -864,7 +865,7 @@ class Localization_Tracker():
                 # remove stale objects
                 removals = []
                 for id in pre_ids:
-                    if self.fsld[id] >= self.fsld_max:
+                    if self.fsld[id] >= self.fsld_max and (frame_num - self.all_first_frames[id] < self.fsld_keep):
                         removals.append(id)
                         self.fsld.pop(id,None) # remove key from fsld
                 if len(removals) > 0:

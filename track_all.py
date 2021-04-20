@@ -111,7 +111,7 @@ if __name__ == "__main__":
         tracks = [os.path.join(directory,item) for item in os.listdir(directory)]
         tracks.sort()
         
-        for sequence in tracks:           
+        for sequence in tracks[5:]:           
             
             track_name = sequence.split("/")[-1].split(".")[0]
             save_file = os.path.join(out_dir,"results_{}.cpkl".format(track_name))
