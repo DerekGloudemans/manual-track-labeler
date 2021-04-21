@@ -12,15 +12,21 @@ Provides:
 import os,sys
 import numpy as np
 import random 
-import math
 random.seed = 0
 
+import random 
+import pandas as pd
+import json
+
+import torch
+import torchvision.transforms.functional as F
+    
 import cv2
 from PIL import Image
-import torch
 from torch.utils import data
 from torchvision import transforms
-from torchvision.transforms import functional as F
+
+
 
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
@@ -41,13 +47,80 @@ class LocMulti_Dataset(data.Dataset):
     need to partition data manually by separate directories
     """
     
-    def __init__(self, image_dir, label_dir):
+    def __init__(self, det_im,det_lab,i24_im,i24_lab, cs =224, mode = "train"):
         """ initializes object
         image dir - (string) - a directory containing a subdirectory for each track sequence
         label dir - (string) - a directory containing a label file per sequence
         """
-        self.classes = 13
-        self.class_dict = {
+        np.random.seed(0)
+        
+        self.mode = mode
+        self.cs = cs
+        self.im_tf = transforms.Compose([
+                transforms.RandomApply([
+                    transforms.ColorJitter(brightness = 0.6,contrast = 0.6,saturation = 0.5)
+                        ]),
+                transforms.ToTensor(),
+                # transforms.RandomErasing(p=0.2, scale=(0.02, 0.1), ratio=(0.3, 3.3), value=(0.485,0.456,0.406)),
+                # transforms.RandomErasing(p=0.2, scale=(0.02, 0.07), ratio=(0.3, 3.3), value=(0.485,0.456,0.406)),
+                # transforms.RandomErasing(p=0.2, scale=(0.02, 0.05), ratio=(0.3, 3.3), value=(0.485,0.456,0.406)),
+                # transforms.RandomErasing(p=0.1, scale=(0.02, 0.15), ratio=(0.3, 3.3), value=(0.485,0.456,0.406)),
+                # transforms.RandomErasing(p=0.2, scale=(0.02, 0.1), ratio=(0.3, 3.3), value=(0.485,0.456,0.406)),
+
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+                ])
+
+        # for denormalizing
+        self.denorm = transforms.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225],
+                                           std = [1/0.229, 1/0.224, 1/0.225])
+        
+        
+        self.classes = { "sedan":0,
+                    "midsize":1,
+                    "van":2,
+                    "pickup":3,
+                    "semi":4,
+                    "truck (other)":5,
+                    "motorcycle":6,
+                    "trailer":7,
+                    0:"sedan",
+                    1:"midsize",
+                    2:"van",
+                    3:"pickup",
+                    4:"semi",
+                    5:"truck (other)",
+                    6:"motorcycle",
+                    7:"trailer",
+                    }
+        
+        det_convert = { 0:0,
+                        1:0,
+                        2:1,
+                        3:2,
+                        4:0,
+                        5:0,
+                        6:5,
+                        7:5,
+                        8:1,
+                        9:5,
+                        10:5,
+                        11:3,
+                        12:3,
+                        13:5}
+        
+        i24_convert = { 0:0,
+                        1:1,
+                        2:1,
+                        3:2,
+                        4:3,
+                        5:4,
+                        6:5,
+                        7:7,
+                        8:6}
+        
+        # get detrac data first
+        detrac_class_dict = {
             'Sedan':0,
             'Hatchback':1,
             'Suv':2,
@@ -79,36 +152,40 @@ class LocMulti_Dataset(data.Dataset):
             13:"None"
             }
         
+        i24_class_dict = {
+            "sedan": 0,
+            "SUV":1,
+            "minivan":2,
+            "van":3,
+            "pickup truck": 4,
+            "pickup":4,
+            "semi":5,
+            "semi truck": 5,
+            "truck (other)": 6,
+            "trailer":7,
+            "motorcycle":8,
+            0:"sedan",
+            1:"SUV",
+            2:"minivan",
+            3:"van",
+            4:"pickup truck",
+            5:"semi truck",
+            6:"truck (other)",
+            7:"trailer",
+            8:"motorcycle"
+            }
         
-        self.im_tf = transforms.Compose([
-                transforms.RandomApply([
-                    transforms.ColorJitter(brightness = 0.6,contrast = 0.6,saturation = 0.5)
-                        ]),
-                transforms.ToTensor(),
-                # transforms.RandomErasing(p=0.2, scale=(0.02, 0.1), ratio=(0.3, 3.3), value=(0.485,0.456,0.406)),
-                # transforms.RandomErasing(p=0.2, scale=(0.02, 0.07), ratio=(0.3, 3.3), value=(0.485,0.456,0.406)),
-                # transforms.RandomErasing(p=0.2, scale=(0.02, 0.05), ratio=(0.3, 3.3), value=(0.485,0.456,0.406)),
-                # transforms.RandomErasing(p=0.1, scale=(0.02, 0.15), ratio=(0.3, 3.3), value=(0.485,0.456,0.406)),
-                # transforms.RandomErasing(p=0.2, scale=(0.02, 0.1), ratio=(0.3, 3.3), value=(0.485,0.456,0.406)),
-
-                transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
-                ])
-
-        # for denormalizing
-        self.denorm = transforms.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225],
-                                           std = [1/0.229, 1/0.224, 1/0.225])
         
         # stores files for each image
-        dir_list = next(os.walk(image_dir))[1]
-        track_list = [os.path.join(image_dir,item) for item in dir_list]
+        dir_list = next(os.walk(det_im))[1]
+        track_list = [os.path.join(det_im,item) for item in dir_list]
         track_list.sort()
         
         # parse labels and store in dict keyed by track name
         label_list = {}
-        for item in os.listdir(label_dir):
+        for item in os.listdir(det_lab):
             name = item.split("_v3.xml")[0]
-            out =  self.parse_labels(os.path.join(label_dir,item))
+            out =  self.parse_labels(os.path.join(det_lab,item))
             label_list[name] = out
         
         # for storing data
@@ -141,11 +218,62 @@ class LocMulti_Dataset(data.Dataset):
                     #print("Error: tried to load label {} for track {} but it doesnt exist. Labels is length {}".format(j,track_list[i],len(labels))) 
                 
                     
-        # in case it is later important which files are which
-        self.track_list = track_list
-        self.label_list = label_list
         
-
+        self.labels_i24 = []
+        self.data_i24 = []
+        
+        df = pd.read_csv(i24_lab)
+        im_names = df['filename'].unique()
+        im_names = sorted(im_names)
+        
+        # get all data for a given image
+        for item in im_names:
+            rows = df[df.filename == item]
+            rows = rows.to_numpy()
+            
+            gathered = []
+            try:
+                for row in rows:
+                    bbox = json.loads(row[5])
+                    if bool(bbox): # not empty
+                        bbox = [bbox["x"],bbox["y"],bbox["width"]+bbox["x"],bbox["y"] + bbox["height"]]
+                        cls = json.loads(row[6])["class"]
+                        #bbox.append(i24_convert[i24_class_dict[cls]])
+                        bbox = np.array(bbox)
+                        #gathered.append(bbox)
+                        
+                        obj_dict = {"class_num":i24_convert[i24_class_dict[cls]],
+                                    "bbox": bbox}
+                        gathered.append(obj_dict)
+                        
+            except:
+                pass
+            
+            gathered = np.array(gathered)
+            self.labels_i24.append(gathered)
+            self.data_i24.append(os.path.join(i24_im,item))
+            
+        
+        # indices = [i for i in range(len(self.labels_i24))]
+        # random.seed(5)
+        # random.shuffle(indices)
+            
+            
+        for i in range(len(self.labels_i24)):
+            for duplicate in range(15):
+                self.all_data.append((self.data_i24[i],self.labels_i24[i],[]))
+        
+        
+        random.shuffle(self.all_data)
+        
+        if self.mode == "train":
+            self.all_data = self.all_data[:int(len(self.all_data)*0.9)]
+        else:
+            self.all_data = self.all_data[int(len(self.all_data)*0.9):]
+                
+                
+        
+        
 
     def __len__(self):
         """ returns total number of frames in all tracks"""
@@ -161,7 +289,11 @@ class LocMulti_Dataset(data.Dataset):
         cur = self.all_data[index]
         im = Image.open(cur[0])
         label = cur[1]
-        ignored = cur[2]['ignored_regions']
+        
+        try:
+            ignored = cur[2]['ignored_regions']
+        except:
+            ignored = []
         if len(ignored) > 0:
             ignored = torch.from_numpy(np.stack(ignored))
         
@@ -172,7 +304,7 @@ class LocMulti_Dataset(data.Dataset):
             for item in label:
                 bboxes.append(torch.from_numpy(item["bbox"]))
                 classes.append(torch.tensor(item["class_num"]))
-            bboxes = torch.stack(bboxes)
+            bboxes = torch.stack(bboxes).double()
             classes = torch.stack(classes).double().unsqueeze(1)
             
             
@@ -180,7 +312,7 @@ class LocMulti_Dataset(data.Dataset):
             
         else:
             y = torch.zeros([1,5])
-            y[0,4] = -1
+            #y[0,4] = -1
             
         # randomly flip
         FLIP = np.random.rand()
@@ -201,6 +333,7 @@ class LocMulti_Dataset(data.Dataset):
         # # convert image and label to tensors
         im_t = transforms.ToTensor()(im)
         
+        
         # # mask out ignored regions with random pixels
         for region in ignored:
             r =  torch.normal(0.485,0.229,[int(region[3])-int(region[1]),int(region[2])-int(region[0])])
@@ -209,13 +342,23 @@ class LocMulti_Dataset(data.Dataset):
             rgb = torch.stack([r,g,b])
             im_t[:,int(region[1]):int(region[3]),int(region[0]):int(region[2])] = rgb 
           
+        
+            
         im = transforms.ToPILImage()(im_t)
         
-
+        
+        
+            
         
         # use one object to define center
         if torch.sum(y) != 0:
             idx = np.random.randint(len(y))
+
+            truck_idxs = torch.where(y[:,4] == 1)[0]         # if there is a truck, use that most often 
+            if len(truck_idxs) > 0:
+                if np.random.rand() > 0.1: # use truck 90% of the time
+                    idx = truck_idxs[np.random.randint(len(truck_idxs))]
+
             box = y[idx]
             centx = (box[0] + box[2])/2.0
             centy = (box[1] + box[3])/2.0
@@ -224,15 +367,15 @@ class LocMulti_Dataset(data.Dataset):
             centy += noise[1]
             
             size = max(box[3]-box[1],box[2] - box[0])
-            size_noise = max( -(size*2/4) , np.random.normal(size/2,size/4))
+            size_noise = max( -(size*1/4) , np.random.normal(size*3/4,size/4))
             size += size_noise
             
             if size < 50:
                 size = 50
         else:
-            size = max(50,np.random.normal(100,25))
-            centx = np.random.randint(100,500)
-            centy = np.random.randint(100,500)
+            size = max(50,np.random.normal(300,25))
+            centx = np.random.randint(100,1000)
+            centy = np.random.randint(100,1000)
         try:
             minx = int(centx - size/2)
             miny = int(centy - size/2)
@@ -258,26 +401,41 @@ class LocMulti_Dataset(data.Dataset):
             y[:,3] = y[:,3] - miny
 
         crop_size = im_crop.size
-        im_crop = F.resize(im_crop, (224,224))
+        im_crop = F.resize(im_crop, (self.cs,self.cs))
 
-        y[:,0] = y[:,0] * 224/crop_size[0]
-        y[:,2] = y[:,2] * 224/crop_size[0]
-        y[:,1] = y[:,1] * 224/crop_size[1]
-        y[:,3] = y[:,3] * 224/crop_size[1]
+        y[:,0] = y[:,0] * self.cs/crop_size[0]
+        y[:,2] = y[:,2] * self.cs/crop_size[0]
+        y[:,1] = y[:,1] * self.cs/crop_size[1]
+        y[:,3] = y[:,3] * self.cs/crop_size[1]
         
         # remove all labels that aren't in crop
         if torch.sum(y) != 0:
             keepers = []
             for i,item in enumerate(y):
-                if item[0] < 224-15 and item[2] > 0+15 and item[1] < 224-15 and item[3] > 0+15:
+                if item[0] < self.cs-15 and item[2] > 0+15 and item[1] < self.cs-15 and item[3] > 0+15:
                     keepers.append(i)
             y = y[keepers]
         if len(y) == 0:
             y = torch.zeros([1,5])
-            y[0,4] = -1
+            #y[0,4] = 0
         
         im_t = self.im_tf(im_crop)
 
+        OCCLUDE = np.random.rand()
+        if OCCLUDE > 0.7:
+            # roughly occlude bottom, left or right third of image
+            yo_min = np.random.randint(im_t.shape[2]/3,im_t.shape[2])
+            yo_max = im_t.shape[2]
+            xo_min = np.random.randint(0,im_t.shape[1]/3)
+            xo_max = np.random.randint(im_t.shape[1]*2/3,im_t.shape[1])
+            region = torch.tensor([xo_min,yo_min,xo_max,yo_max]).int()
+            
+            r =  torch.normal(0.485,0.229,[int(region[3])-int(region[1]),int(region[2])-int(region[0])])
+            g =  torch.normal(0.456,0.224,[int(region[3])-int(region[1]),int(region[2])-int(region[0])])
+            b =  torch.normal(0.406,0.225,[int(region[3])-int(region[1]),int(region[2])-int(region[0])])
+            rgb = torch.stack([r,g,b])
+            im_t[:,int(region[1]):int(region[3]),int(region[0]):int(region[2])] = rgb 
+            
         
         return im_t, y,ignored
     
@@ -320,6 +478,20 @@ class LocMulti_Dataset(data.Dataset):
             13:"None"
             }
         
+        det_convert = { 0:0,
+                        1:0,
+                        2:1,
+                        3:2,
+                        4:0,
+                        5:0,
+                        6:5,
+                        7:5,
+                        8:1,
+                        9:5,
+                        10:5,
+                        11:3,
+                        12:3,
+                        13:5}
         
         tree = ET.parse(label_file)
         root = tree.getroot()
@@ -369,7 +541,7 @@ class LocMulti_Dataset(data.Dataset):
                 det_dict = {
                         'id':int(boxid.attrib['id']),
                         'class':stats['vehicle_type'],
-                        'class_num':class_dict[stats['vehicle_type']],
+                        'class_num':det_convert[class_dict[stats['vehicle_type']]],
                         'color':stats['color'],
                         'orientation':float(stats['orientation']),
                         'truncation':float(stats['truncation_ratio']),
@@ -459,7 +631,7 @@ class LocMulti_Dataset(data.Dataset):
             for bbox in label:
                 bbox = bbox.int().data.numpy()
                 cv2.rectangle(cv_im,(bbox[0],bbox[1]),(bbox[2],bbox[3]), class_colors[bbox[4]], 1)
-                plot_text(cv_im,(bbox[0],bbox[1]),bbox[4],0,class_colors,class_dict)
+                plot_text(cv_im,(bbox[0],bbox[1]),bbox[4],0,class_colors,self.classes)
         
         
         # for region in metadata["ignored_regions"]:
@@ -502,37 +674,23 @@ def collate(inputs):
         
     return ims,labels,metadata   
         
-class_dict = {
-            'Sedan':0,
-            'Hatchback':1,
-            'Suv':2,
-            'Van':3,
-            'Police':4,
-            'Taxi':5,
-            'Bus':6,
-            'Truck-Box-Large':7,
-            'MiniVan':8,
-            'Truck-Box-Med':9,
-            'Truck-Util':10,
-            'Truck-Pickup':11,
-            'Truck-Flatbed':12,
-            "None":13,
-            
-            0:'Sedan',
-            1:'Hatchback',
-            2:'Suv',
-            3:'Van',
-            4:'Police',
-            5:'Taxi',
-            6:'Bus',
-            7:'Truck-Box-Large',
-            8:'MiniVan',
-            9:'Truck-Box-Med',
-            10:'Truck-Util',
-            11:'Truck-Pickup',
-            12:'Truck-Flatbed',
-            13:"None"
-            }
+class_dict = { "sedan":0,
+                    "midsize":1,
+                    "van":2,
+                    "pickup":3,
+                    "semi":4,
+                    "truck (other)":5,
+                    "motorcycle":6,
+                    "trailer":7,
+                    0:"sedan",
+                    1:"midsize",
+                    2:"van",
+                    3:"pickup",
+                    4:"semi",
+                    5:"truck (other)",
+                    6:"motorcycle",
+                    7:"trailer",
+                    }
 
 def collate(inputs):
     """
@@ -571,12 +729,13 @@ if __name__ == "__main__":
         test
     except:
         
-        image_dir = "/home/worklab/Desktop/detrac/DETRAC-train-data"
-        label_dir = "/home/worklab/Desktop/detrac/DETRAC-Train-Annotations-XML-v3"
-        test = LocMulti_Dataset(image_dir,label_dir)
-    for i in range(10):
+        detrac_image_dir = "/home/worklab/Data/cv/Detrac/DETRAC-train-data"
+        detrac_label_dir = "/home/worklab/Data/cv/Detrac/DETRAC-Train-Annotations-XML-v3"
+        i24_label_dir = "/home/worklab/Data/cv/i24_2D_October_2020/labels.csv"
+        i24_image_dir = "/home/worklab/Data/cv/i24_2D_October_2020/ims"
+        test = LocMulti_Dataset(detrac_image_dir,detrac_label_dir,i24_image_dir,i24_label_dir,cs = 224)
+    for i in range(100):
         idx = np.random.randint(0,len(test))
-        test.show(idx)
         test.show(idx)
     
     cv2.destroyAllWindows()

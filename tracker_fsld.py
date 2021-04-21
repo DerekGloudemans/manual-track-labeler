@@ -6,7 +6,7 @@ Created on Thu Aug 13 15:46:21 2020
 @author: worklab
 """
 
-
+import csv
 import os,sys,inspect
 import numpy as np
 import random 
@@ -33,7 +33,7 @@ from util.mp_writer import OutputWriter
 class Localization_Tracker():
     
     def __init__(self,
-                 track_dir,
+                 sequence,
                  detector,
                  localizer,
                  kf_params,
@@ -69,8 +69,12 @@ class Localization_Tracker():
             If True, resulting frames are output. The default is True. 
         """
         
+        self.input_file_name = sequence
+        self.output_dir = "output"
+        
         # parse config file here
         params = self.parse_config_file(config_file)[0]
+        
         #store parameters
         self.distance_mode    = "iou"
         self.d                = params["det_step"]
@@ -86,6 +90,7 @@ class Localization_Tracker():
         self.cs = cs          = params["cs"]
         self.W                = params["W"]
         self.downsample       = params["downsample"]
+        self.transform_path   = params["transform_path"]
         self.trim_last        = 0 
         self.PLOT             = PLOT
         
@@ -115,7 +120,7 @@ class Localization_Tracker():
        
         # get frame loader (fls controls how often FrameLoader sends an actual frame)
         fls = 1 if self.PLOT else self.s
-        self.loader = FrameLoader(track_dir,self.device,downsample = self.downsample,s = fls,show = self.PLOT)
+        self.loader = FrameLoader(sequence,self.device,downsample = self.downsample,s = fls,show = self.PLOT)
         
         # create output image writer
         if OUT is not None:
@@ -133,6 +138,7 @@ class Localization_Tracker():
         self.all_classes = {}            # stores class evidence for each object
         self.all_confs = {}
         self.all_first_frames = {}
+        self.all_timestamps = []
         
         self.class_dict = class_dict
     
@@ -694,8 +700,9 @@ class Localization_Tracker():
         """    
         
         self.start_time = time.time()
-        [frame_num, frame,dim,original_im] = next(self.loader)   
+        [frame_num, frame,dim,original_im,timestamp] = next(self.loader)   
         self.frame_size = frame.shape        
+        self.all_timestamps.append(timestamp)
         self.time_metrics["load"] += time.time() - self.start_time         
 
         while frame_num != -1:            
@@ -897,14 +904,18 @@ class Localization_Tracker():
        
             # load next frame 
             start = time.time()
-            [frame_num, frame,dim,original_im] = next(self.loader)            
+            [frame_num, frame,dim,original_im,timestamp] = next(self.loader)            
+            self.all_timestamps.append(timestamp)
             self.time_metrics["load"] += time.time() - start
             fps = round(frame_num/(time.time() - self.start_time),2)
             fps_noload = round(frame_num/(time.time()-self.start_time-self.time_metrics["load"] - self.time_metrics["plot"]),2)
             print("\rTracking frame {} of {}. {} FPS ({} FPS without loading)".format(frame_num,self.n_frames,fps,fps_noload), end = '\r', flush = True)
             
+            if frame_num > 500:
+                break
             
         # clean up at the end
+        self.frames_processed = frame_num
         self.end_time = time.time()
         torch.cuda.empty_cache()
         cv2.destroyAllWindows()
@@ -987,3 +998,209 @@ class Localization_Tracker():
 
         #print("\nTotal time taken: {}s".format(self.end_time - self.start_time))
         return final_output, framerate, self.time_metrics
+    
+    def write_results_csv(self):
+        """
+        Call after tracking to summarize results in .csv file
+        """
+        outfile = self.input_file_name.split(".")[0] + "_track_outputs.csv"
+        if self.output_dir is not None:
+            outfile = os.path.join(self.output_dir,outfile.split("/")[-1])
+
+        
+        # create summary headers
+        summary_header = [
+            "Video sequence name",
+            "Processing start time",
+            "Processing end time",
+            "Timestamp start time",
+            "Timestamp end time",
+            "Unique objects",
+            "GPU"
+            ]
+        
+        # create summary data
+        summary = []
+        summary.append(self.input_file_name)
+        start_time_ms = str(np.round(self.start_time%1,2)).split(".")[1]
+        start_time = time.strftime('%Y-%m-%d %H:%M:%S.{}', time.localtime(self.start_time)).format(start_time_ms)
+        summary.append(start_time)
+        end_time_ms = str(np.round(self.end_time%1,2)).split(".")[1]
+        end_time = time.strftime('%Y-%m-%d %H:%M:%S.{}', time.localtime(self.end_time)).format(end_time_ms)
+        summary.append(end_time)    
+        summary.append(self.all_timestamps[0])
+        summary.append(self.all_timestamps[-1])
+        summary.append(self.next_obj_id) # gives correct count since 0-indexed
+        summary.append(str(self.device))
+        
+        
+        
+        # create time header and data
+        fps = self.frames_processed / (self.end_time - self.start_time)
+        time_header = ["Processing fps"]
+        time_data = [fps]
+        for item in self.time_metrics.keys():
+            time_header.append(item)
+            time_data.append(self.time_metrics[item])
+        
+        
+        # create parameter header and data
+        parameter_header = [
+            "Detection step",
+            "Skip step"
+            ]
+        
+        parameter_data = []
+        parameter_data.append(self.d)
+        parameter_data.append(self.s)
+
+        
+        
+        # create main data header
+        data_header = [
+            "Frame #",
+            "Timestamp",
+            "Object ID",
+            "Object class",
+            "BBox xmin",
+            "BBox ymin",
+            "BBox xmax",
+            "BBox ymax",
+            "Generation method",
+            "GPS lat of bbox bottom center",
+            "GPS long of bbox bottom center"
+            ]
+        
+        # get perspective trasform camera -> GPS
+        M = self.parse_transform_file()
+        
+        
+        
+        with open(outfile, mode='w') as f:
+            out = csv.writer(f, delimiter=',')
+            
+            # write first chunk
+            out.writerow(summary_header)
+            out.writerow(summary)
+            out.writerow([])
+            
+            # write second chunk
+            out.writerow(time_header)
+            out.writerow(time_data)
+            out.writerow([])
+            
+            # write third chunk
+            out.writerow(parameter_header)
+            out.writerow(parameter_data)
+            out.writerow([])
+            
+            # write main chunk
+            out.writerow(data_header)
+            
+            for frame in range(self.frames_processed):
+                try:
+                    timestamp = self.all_timestamps[frame]
+                except:
+                    timestamp = -1
+                
+                if frame % self.d == 0:
+                    gen = "Detector"
+                elif self.localizer is not None and (frame % self.d)%self.s == 0:
+                    gen = "Localizer"
+                else:
+                    gen = "Filter prediction"
+                
+                for id in self.all_tracks:
+                    bbox = self.all_tracks[id][frame]
+                    if bbox[0] != 0:
+                        obj_line = []
+                        obj_line.append(frame)
+                        obj_line.append(timestamp)
+                        obj_line.append(id)
+                        obj_line.append(self.class_dict[np.argmax(self.all_classes[id])])
+                        obj_line.append(bbox[0])
+                        obj_line.append(bbox[2])
+                        obj_line.append(bbox[1])
+                        obj_line.append(bbox[3])
+                        obj_line.append(gen)
+                        
+                        centx = (bbox[0]+bbox[2])/2.0
+                        centy = (bbox[1]+bbox[3])/2.0
+                        cent = np.zeros([1,2],np.float32)
+                        cent[0,0] = centx
+                        cent[0,1] = centy
+                        gps_pt = self.transform_pt_array(cent,M)
+                        obj_line.append(gps_pt[0,0])
+                        obj_line.append(gps_pt[0,1])
+                        
+                        out.writerow(obj_line)
+                        
+            
+            
+    def transform_pt_array(self,point_array,M):
+        """
+        Applies 3 x 3  image transformation matrix M to each point stored in the point array
+        """
+        
+        original_shape = point_array.shape
+        
+        num_points = int(np.size(point_array,0)*np.size(point_array,1)/2)
+        # resize array into N x 2 array
+        reshaped = point_array.reshape((num_points,2))   
+        
+        # add third row
+        ones = np.ones([num_points,1])
+        points3d = np.concatenate((reshaped,ones),1)
+        
+        # transform points
+        tf_points3d = np.transpose(np.matmul(M,np.transpose(points3d)))
+        
+        # condense to two-dimensional coordinates
+        tf_points = np.zeros([num_points,2])
+        tf_points[:,0] = tf_points3d[:,0]/tf_points3d[:,2]
+        tf_points[:,1] = tf_points3d[:,1]/tf_points3d[:,2]
+        
+        tf_point_array = tf_points.reshape(original_shape)
+        
+        return tf_point_array     
+
+
+
+    def parse_transform_file(self):
+        chunks = self.input_file_name.split("/")[-1].split("_")
+        camera_id = None
+        for chunk in chunks:
+            if "p" in chunk.lower() and "c" in chunk.lower():        
+                camera_id = chunk
+                break
+        
+        if camera_id is None:
+            raise Exception("No camera id was extracted from file name {}".format(self.input_file_name))
+        
+        gps_points = []
+        camera_points = []
+        with open(self.transform_path,'r') as f:
+            csv_reader = csv.reader(f, delimiter=',')
+            
+            line_count = 0
+            for row in csv_reader:
+                if line_count == 0:
+                    #print(f'Column names are {", ".join(row)}')
+                    line_count += 1
+                else:
+                   if row[0].lower() == camera_id:
+                       gps_lat = row[1]
+                       gps_lon = row[2]
+                       cam_x = row[3]
+                       cam_y = row[4]
+                       
+                       gps_points.append(np.array([gps_lat,gps_lon]))
+                       camera_points.append(np.array([cam_x,cam_y]))
+           
+            if len(gps_points) != 4:
+                raise Exception("Transform parser did not find the right number of matching coordinates for camera id {}".format(camera_id))
+            else:
+                gps_points = np.array(gps_points,np.float32)
+                camera_points = np.array(camera_points,np.float32)
+                M = cv2.getPerspectiveTransform(camera_points,gps_points)
+                return M

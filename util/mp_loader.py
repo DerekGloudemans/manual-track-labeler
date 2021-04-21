@@ -228,6 +228,14 @@ def load_to_queue_video(image_queue,sequence,device,queue_size,s,downsample,show
                     image_queue.put(frame)       
                     break
                 else:
+                    
+                    timestamp = None # deal with this later
+                    # if checksum_path is not None:
+                    #     # get timestamp
+                    #     timestamp = parse_frame_timestamp(frame_pixels = original_im, timestamp_geometry = geom, precomputed_checksums = checksums)
+                    #     if timestamp[0] is None:
+                    #         timestamp = None
+                    
                     if downsample != 1:   
                         size1 = original_im.shape[0] //downsample
                         size2 = original_im.shape[1] //downsample
@@ -244,9 +252,9 @@ def load_to_queue_video(image_queue,sequence,device,queue_size,s,downsample,show
                     im = im.to(device)
                     dim = None
                     if show:
-                        frame = (frame_idx,im,dim,original_im)
+                        frame = (frame_idx,im,dim,original_im,timestamp)
                     else:
-                        frame = (frame_idx,im,dim,None)
+                        frame = (frame_idx,im,dim,None,timestamp)
                     # append to queue
                     image_queue.put(frame)       
                     frame_idx += 1
@@ -255,11 +263,11 @@ def load_to_queue_video(image_queue,sequence,device,queue_size,s,downsample,show
                 # load next image from videocapture object
                 ret = cap.grab()
                 if ret == False:
-                    frame = (-1,None,None,None)
+                    frame = (-1,None,None,None,None)
                     image_queue.put(frame)       
                     break
                 else:
-                    frame = (frame_idx,None,None,None)
+                    frame = (frame_idx,None,None,None,None)
                     image_queue.put(frame)       
                     frame_idx += 1
                     

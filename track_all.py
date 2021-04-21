@@ -45,7 +45,7 @@ if __name__ == "__main__":
      except:
          directory = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording"
          GPU_ID = 0
-         SHOW = True
+         SHOW = False
          out_dir = "output"
 
          
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         tracks = [os.path.join(directory,item) for item in os.listdir(directory)]
         tracks.sort()
         
-        for sequence in tracks[5:]:           
+        for sequence in tracks:           
             
             track_name = sequence.split("/")[-1].split(".")[0]
             save_file = os.path.join(out_dir,"results_{}.cpkl".format(track_name))
@@ -138,6 +138,7 @@ if __name__ == "__main__":
             
             tracker.track()
             preds, Hz, time_metrics = tracker.get_results()
+            tracker.write_results_csv()
             print("\rsequence {} --->  Framerate: {}".format(track_name,np.round(np.round(Hz,2))))
             
             with open(save_file,"wb") as f:
