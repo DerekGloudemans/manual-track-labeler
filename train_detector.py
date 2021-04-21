@@ -21,16 +21,16 @@ import torch
 from torch.utils import data
 from torch import optim
 import collections
+import torch.nn as nn
 
 # add relevant packages and directories to path
-detector_path = os.path.join(os.getcwd(),"models","pytorch_retinanet_detector")
+detector_path = os.path.join(os.getcwd(),"model","pytorch_retinanet_detector")
 sys.path.insert(0,detector_path)
-MOT_util_path = os.path.join(os.getcwd(),"util_MOT")
-sys.path.insert(0,MOT_util_path)
+from model.pytorch_retinanet_detector.retinanet.model import resnet50 
 
-#from _detectors.pytorch_retinanet.retinanet import model, csv_eval 
-from models.pytorch_retinanet_detector.retinanet import model
-from util_MOT.MOT_detection_dataset import Detection_Dataset,collate
+util_path = os.path.join(os.getcwd(),"util")
+sys.path.insert(0,util_path)
+from util.detection_dataset import Detection_Dataset,collate
 
 
 # surpress XML warnings (for UA detrac data)
@@ -41,7 +41,7 @@ def to_cpu(checkpoint):
     """
     """
     try:
-        retinanet = model.resnet50(14)
+        retinanet = resnet50(14)
         retinanet = nn.DataParallel(retinanet,device_ids = [0,1,2,3])
         retinanet.load_state_dict(torch.load(checkpoint))
     except:
@@ -113,16 +113,17 @@ if __name__ == "__main__":
 
     # define parameters here
     depth = 50
-    num_classes = 14
-    patience = 0
+    num_classes = 8
+    patience = 1
     max_epochs = 50
-    start_epoch = 5
-    checkpoint_file = "MOT_detector_resnet50_e4.pt"
+    start_epoch = 0
+    checkpoint_file = None #"MOT_detector_resnet50_e4.pt"
 
     # Paths to data here
-    train_dir = "/home/worklab/Data/cv/MOT20/comb_17_20_train"
-    val_dir = "/home/worklab/Data/cv/MOT20/test"
-
+    
+    
+    i24_label_dir = "/home/worklab/Data/cv/i24_2D_October_2020/labels.csv"
+    i24_image_dir = "/home/worklab/Data/cv/i24_2D_October_2020/ims"
 
 
     ###########################################################################
@@ -130,15 +131,15 @@ if __name__ == "__main__":
 
     # Create the model
     if depth == 18:
-        retinanet = model.resnet18(num_classes=num_classes, pretrained=True)
+        retinanet = resnet18(num_classes=num_classes, pretrained=True)
     elif depth == 34:
-        retinanet = model.resnet34(num_classes=num_classes, pretrained=True)
+        retinanet = resnet34(num_classes=num_classes, pretrained=True)
     elif depth == 50:
-        retinanet = model.resnet50(num_classes=num_classes, pretrained=True)
+        retinanet = resnet50(num_classes=num_classes, pretrained=True)
     elif depth == 101:
-        retinanet = model.resnet101(num_classes=num_classes, pretrained=True)
+        retinanet = resnet101(num_classes=num_classes, pretrained=True)
     elif depth == 152:
-        retinanet = model.resnet152(num_classes=num_classes, pretrained=True)
+        retinanet = resnet152(num_classes=num_classes, pretrained=True)
     else:
         raise ValueError('Unsupported model depth, must be one of 18, 34, 50, 101, 152')
 
@@ -148,8 +149,8 @@ if __name__ == "__main__":
         train_data
     except:
         # get dataloaders
-        train_data = Detection_Dataset(train_dir)
-        val_data = Detection_Dataset(val_dir,mode = "test")
+        train_data = Detection_Dataset(i24_image_dir,i24_label_dir)
+        val_data = Detection_Dataset(i24_image_dir,i24_label_dir,mode = "test")
         #train_data = LocMulti_Dataset(train_partition,label_dir)
         #val_data = LocMulti_Dataset(val_partition,label_dir)
         params = {'batch_size' : 8,
@@ -168,7 +169,7 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if use_cuda else "cpu")
     if use_cuda:
         if torch.cuda.device_count() > 1:
-            retinanet = torch.nn.DataParallel(retinanet,device_ids = [0,1,2,3])
+            retinanet = torch.nn.DataParallel(retinanet,device_ids = [0,1,2])
             retinanet = retinanet.to(device)
         else:
             retinanet = retinanet.to(device)
@@ -235,11 +236,11 @@ if __name__ == "__main__":
 
                 epoch_loss.append(float(loss))
 
-                if iter_num % 10 == 0:
+                if iter_num % 1 == 0:
                     print(
                         'Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(
                             epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist)))
-                if iter_num % 50 == 0:
+                if iter_num % 10 == 0:
                     plot_detections(val_data, retinanet)
 
                 del classification_loss
@@ -255,7 +256,7 @@ if __name__ == "__main__":
         torch.cuda.empty_cache()
         
         #save checkpoint every epoch
-        PATH = "MOT_detector_resnet50_e{}.pt".format(epoch_num)
+        PATH = "detector_resnet50_e{}.pt".format(epoch_num)
         torch.save(retinanet.state_dict(),PATH)
         torch.cuda.empty_cache()
-        time.sleep(60) # to cool down GPUs I guess
+        time.sleep(30) # to cool down GPUs I guess

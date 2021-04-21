@@ -2,3 +2,5 @@
 *.pt
 
 _model/py_ret_det_multigpu/images/
+
+*.pth

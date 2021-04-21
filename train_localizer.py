@@ -33,7 +33,7 @@ import collections
 # add relevant packages and directories to path
 localizer_path = os.path.join(os.getcwd(),"models","pytorch_retinanet_detector")
 sys.path.insert(0,localizer_path)
-MOT_util_path = os.path.join(os.getcwd(),"util_MOT")
+util_path = os.path.join(os.getcwd(),"util_MOT")
 sys.path.insert(0,MOT_util_path)
 
 #from _detectors.pytorch_retinanet.retinanet import model, csv_eval 
@@ -221,28 +221,27 @@ def iou(a,b):
     return mean_iou
     
 
-def to_cpu(retinanet,checkpoint):
+def to_cpu(checkpoint):
     """
-    Moves retinanet checkpoint from GPU to CPU
     """
     try:
-        if checkpoint_file is not None:
-            retinanet = torch.load(checkpoint_file)
+        retinanet = model.resnet50(14)
+        retinanet = nn.DataParallel(retinanet,device_ids = [0,1,2,3])
+        retinanet.load_state_dict(torch.load(checkpoint))
     except:
-        retinanet.load_state_dict(torch.load(checkpoint_file)["model_state_dict"])
+        retinanet = model.resnet34(14)
+        retinanet = nn.DataParallel(retinanet,device_ids = [0,1,2,3])
+        retinanet.load_state_dict(torch.load(checkpoint))
         
-    retinanet = nn.DataParallel(retinanet,device_ids = [0])
+    retinanet = nn.DataParallel(retinanet, device_ids = [0])
     retinanet = retinanet.cpu()
     
     new_state_dict = {}
     for key in retinanet.state_dict():
         new_state_dict[key.split("module.")[-1]] = retinanet.state_dict()[key]
-    
-    ret = model.resnet34(num_classes=num_classes, pretrained=True)
-
-    ret.load_state_dict(new_state_dict)
-    
-    torch.save(ret,"cpu_{}".format(checkpoint))
+        
+    torch.save(new_state_dict, "cpu_{}".format(checkpoint))
+    print ("Successfully created: cpu_{}".format(checkpoint))
 
 
 if __name__ == "__main__":
