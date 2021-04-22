@@ -96,11 +96,11 @@ def plot_detections(dataset,retinanet):
 
     for box in boxes:
         box = box.int()
-        im = cv2.rectangle(im,(box[0],box[1]),(box[2],box[3]),(0.7,0.3,0.2),1)
+        im = cv2.rectangle(im,(box[0],box[1]),(box[2],box[3]),(1.0,1.0,0),1)
     
     for box in gt:
         box = box.int()
-        im = cv2.rectangle(im,(box[0],box[1]),(box[2],box[3]),(0.0,0.3,0.2),1)
+        im = cv2.rectangle(im,(box[0],box[1]),(box[2],box[3]),(0,1.0,0),1)
     cv2.imshow("Frame",im)
     cv2.waitKey(2000)
 
@@ -115,9 +115,9 @@ if __name__ == "__main__":
     depth = 50
     num_classes = 8
     patience = 1
-    max_epochs = 50
+    max_epochs = 100
     start_epoch = 0
-    checkpoint_file = None #"MOT_detector_resnet50_e4.pt"
+    checkpoint_file = None #"detector_resnet50_e5.pt"
 
     # Paths to data here
     
@@ -218,7 +218,7 @@ if __name__ == "__main__":
                 else:
                     classification_loss, regression_loss = retinanet([im.float(),label.float()])
 
-                classification_loss = classification_loss.mean()
+                classification_loss = classification_loss.mean() 
                 regression_loss = regression_loss.mean()
 
                 loss = classification_loss + regression_loss

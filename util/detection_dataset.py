@@ -94,23 +94,33 @@ class Detection_Dataset(data.Dataset):
         self.denorm = transforms.Normalize(mean = [-0.485/0.229, -0.456/0.224, -0.406/0.225],
                                            std = [1/0.229, 1/0.224, 1/0.225])
         
-        self.class_dict = { "sedan":0,
-                    "midsize":1,
-                    "van":2,
-                    "pickup":3,
-                    "semi":4,
-                    "truck (other)":5,
-                    "motorcycle":6,
-                    "trailer":7,
-                    0:"sedan",
-                    1:"midsize",
-                    2:"van",
-                    3:"pickup",
-                    4:"semi",
-                    5:"truck (other)",
-                    6:"motorcycle",
-                    7:"trailer",
-                    }
+        
+        self.class_dict = {
+            "sedan": 0,
+            "SUV":1,
+            "minivan":2,
+            "van":3,
+            "pickup truck": 4,
+            "pickup":4,
+            "semi":5,
+            "semi truck": 5,
+            "truck (other)": 6,
+            "trailer":7,
+            "motorcycle":8,
+            0:"sedan",
+            1:"SUV",
+            2:"minivan",
+            3:"van",
+            4:"pickup truck",
+            5:"semi truck",
+            6:"truck (other)",
+            7:"trailer",
+            8:"motorcycle"
+            
+            
+            }
+        
+        
         
         i24_convert = { 0:0,
                         1:1,
@@ -140,8 +150,10 @@ class Detection_Dataset(data.Dataset):
                     bbox = json.loads(row[5])
                     if bool(bbox): # not empty
                         bbox = [bbox["x"],bbox["y"],bbox["width"],bbox["height"]]
-                        cls = json.loads(row[6])["class"]
-                        bbox.append(i24_convert[self.class_dict[cls]])
+                        original_cls = json.loads(row[6])["class"]
+                        num_cls = self.class_dict[original_cls]
+                        converted_cls = i24_convert[num_cls]
+                        bbox.append(converted_cls)
                         bbox = np.array(bbox)
                         gathered.append(bbox)
             except:
@@ -166,6 +178,24 @@ class Detection_Dataset(data.Dataset):
         
         self.labels = labels
         self.data = data
+        
+        self.class_dict = { "sedan":0,
+                    "midsize":1,
+                    "van":2,
+                    "pickup":3,
+                    "semi":4,
+                    "truck (other)":5,
+                    "motorcycle":6,
+                    "trailer":7,
+                    0:"sedan",
+                    1:"midsize",
+                    2:"van",
+                    3:"pickup",
+                    4:"semi",
+                    5:"truck (other)",
+                    6:"motorcycle",
+                    7:"trailer",
+                    }
         
     
     def __getitem__(self,index):

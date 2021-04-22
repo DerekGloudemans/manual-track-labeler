@@ -31,14 +31,16 @@ import collections
 
 
 # add relevant packages and directories to path
-localizer_path = os.path.join(os.getcwd(),"models","pytorch_retinanet_detector")
+localizer_path = os.path.join(os.getcwd(),"model","pytorch_retinanet_detector")
 sys.path.insert(0,localizer_path)
-util_path = os.path.join(os.getcwd(),"util_MOT")
-sys.path.insert(0,MOT_util_path)
+
 
 #from _detectors.pytorch_retinanet.retinanet import model, csv_eval 
-from models.pytorch_retinanet_detector.retinanet import model
-from util_MOT.MOT_multi_localization_dataset import Multi_Localization_Dataset, collate
+from model.pytorch_retinanet_detector.retinanet import model
+
+util_path = os.path.join(os.getcwd(),"util")
+sys.path.insert(0,util_path)
+from util.multi_localization_dataset import LocMulti_Dataset, collate
 
 
 # surpress XML warnings
@@ -54,7 +56,7 @@ def plot_detections(dataset,retinanet):
 
     idx = np.random.randint(0,len(dataset))
 
-    im,gt = dataset[idx]
+    im,gt,_= dataset[idx]
 
     im = im.to(device).unsqueeze(0).float()
     #im = im[:,:,:224,:224]
@@ -154,7 +156,7 @@ def eval_iou(dataset,retinanet):
     for j in range(100):
         idx = np.random.randint(0,len(dataset))
     
-        im,label = dataset[idx]
+        im,label,_ = dataset[idx]
     
         im = im.to(device).unsqueeze(0).float()
     
@@ -248,15 +250,17 @@ if __name__ == "__main__":
     
     # define parameters
     depth = 50
-    num_classes = 14
+    num_classes = 8
     patience = 0
     max_epochs = 50
-    start_epoch =37
-    checkpoint_file = "MOT_localizer_resnet50_e36.pt"
+    start_epoch =0
+    checkpoint_file = None
 
     # Paths to data here
-    train_dir = "/home/worklab/Data/cv/MOT20/comb_17_20_train"
-    val_dir = "/home/worklab/Data/cv/MOT20/test"
+    detrac_image_dir = "/home/worklab/Data/cv/Detrac/DETRAC-train-data"
+    detrac_label_dir = "/home/worklab/Data/cv/Detrac/DETRAC-Train-Annotations-XML-v3"
+    i24_label_dir = "/home/worklab/Data/cv/i24_2D_October_2020/labels.csv"
+    i24_image_dir = "/home/worklab/Data/cv/i24_2D_October_2020/ims"
 
     ###########################################################################
 
@@ -304,8 +308,9 @@ if __name__ == "__main__":
         train_data
     except:
         # datasets here defined for UA Detrac Dataset
-        train_data = Multi_Localization_Dataset(train_dir,cropsize = 112)
-        val_data = Multi_Localization_Dataset(val_dir,mode = "test",cropsize = 112)
+        train_data =  LocMulti_Dataset(detrac_image_dir,detrac_label_dir,i24_image_dir,i24_label_dir,cs = 112)
+        val_data   =  LocMulti_Dataset(detrac_image_dir,detrac_label_dir,i24_image_dir,i24_label_dir,cs = 112, mode = "test")
+
         
         params = {'batch_size' : 32,
               'shuffle'    : True,
@@ -360,7 +365,7 @@ if __name__ == "__main__":
         retinanet.training = True
         epoch_loss = []
 
-        for iter_num, (im,label) in enumerate(trainloader):
+        for iter_num, (im,label,_) in enumerate(trainloader):
             
             retinanet.train()
             retinanet.training = True
