@@ -27,8 +27,10 @@ if __name__ == "__main__":
      #add argparse block here so we can optinally run from command line
      #add argparse block here so we can optinally run from command line
      try:
+        directory = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording"
+
         parser = argparse.ArgumentParser()
-        parser.add_argument("directory",help = "path to video directory")
+        parser.add_argument("-directory",help = "path to video directory",default = directory)
         parser.add_argument("-gpu",help = "gpu idx from 0-3", type = int,default = 0)
         parser.add_argument("--show",action = "store_true")
         parser.add_argument("-save",help = "relative directory to save in", type = str,default = "output")
@@ -45,7 +47,7 @@ if __name__ == "__main__":
      except:
          directory = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording"
          GPU_ID = 0
-         SHOW = False
+         SHOW = True
          out_dir = "output"
 
          
@@ -57,45 +59,40 @@ if __name__ == "__main__":
                 
                 
      if True:
-        loc_cp             = "./_config/localizer_retrain_112.pt"
-        det_cp             = "./_config/i24_detector_old.pt"
+        loc_cp             = "./_config/localizer_april_112.pt"
+        det_cp             = "./_config/detector_april.pt"
         filter_state_path  = "./_config/filter_params_tuned.cpkl"
         config             = "./_config/lbt_params.config"
         
-        class_dict = {
-                "sedan": 0,
-                "SUV":1,
-                "minivan":2,
-                "van":3,
-                "pickup truck": 4,
-                "pickup":4,
-                "semi":5,
-                "semi truck": 5,
-                "truck (other)": 6,
-                "trailer":7,
-                "motorcycle":8,
-                0:"sedan",
-                1:"SUV",
-                2:"minivan",
-                3:"van",
-                4:"pickup truck",
-                5:"semi truck",
-                6:"truck (other)",
-                7:"trailer",
-                8:"motorcycle"
-                }
+        class_dict = { "sedan":0,
+                    "midsize":1,
+                    "van":2,
+                    "pickup":3,
+                    "semi":4,
+                    "truck (other)":5,
+                    "motorcycle":6,
+                    "trailer":7,
+                    0:"sedan",
+                    1:"midsize",
+                    2:"van",
+                    3:"pickup",
+                    4:"semi",
+                    5:"truck (other)",
+                    6:"motorcycle",
+                    7:"trailer",
+                    }
         
         # get filter    
         with open(filter_state_path ,"rb") as f:
                  kf_params = pickle.load(f)
                  
         # get localizer
-        localizer = resnet50(num_classes=5,device_id = GPU_ID)
+        localizer = resnet50(num_classes=8,device_id = GPU_ID)
         cp = torch.load(loc_cp)
         localizer.load_state_dict(cp) 
 
         # get detector
-        detector = resnet50(num_classes=9,device_id = GPU_ID)
+        detector = resnet50(num_classes=8,device_id = GPU_ID)
         try:
             detector.load_state_dict(torch.load(det_cp))
         except:    
@@ -120,8 +117,8 @@ if __name__ == "__main__":
             if os.path.exists(save_file):
                 continue
     
-            # with open(save_file,"wb") as f:
-            #                     pickle.dump(0,f) # empty file to prevent other workers from grabbing this file as well
+            with open(save_file,"wb") as f:
+                                pickle.dump(0,f) # empty file to prevent other workers from grabbing this file as well
             
             
             
@@ -139,8 +136,8 @@ if __name__ == "__main__":
             tracker.track()
             preds, Hz, time_metrics = tracker.get_results()
             tracker.write_results_csv()
-            print("\rsequence {} --->  Framerate: {}".format(track_name,np.round(np.round(Hz,2))))
+            print("\nsequence {} --->  Framerate: {}".format(track_name,np.round(np.round(Hz,2))))
             
-            with open(save_file,"wb") as f:
-                pickle.dump((preds,time_metrics,Hz),f)
+            # with open(save_file,"wb") as f:
+            #     pickle.dump((preds,time_metrics,Hz),f)
             

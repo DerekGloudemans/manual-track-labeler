@@ -227,11 +227,11 @@ def to_cpu(checkpoint):
     """
     """
     try:
-        retinanet = model.resnet50(14)
+        retinanet = model.resnet50(8)
         retinanet = nn.DataParallel(retinanet,device_ids = [0,1,2,3])
         retinanet.load_state_dict(torch.load(checkpoint))
     except:
-        retinanet = model.resnet34(14)
+        retinanet = model.resnet34(8)
         retinanet = nn.DataParallel(retinanet,device_ids = [0,1,2,3])
         retinanet.load_state_dict(torch.load(checkpoint))
         

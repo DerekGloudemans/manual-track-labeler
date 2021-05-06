@@ -4,3 +4,5 @@
 _model/py_ret_det_multigpu/images/
 
 *.pth
+
+output/

@@ -224,7 +224,7 @@ def load_to_queue_video(image_queue,sequence,device,queue_size,s,downsample,show
                 # load next image from videocapture object
                 ret,original_im = cap.read()
                 if ret == False:
-                    frame = (-1,None,None,None)
+                    frame = (-1,None,None,None,None)
                     image_queue.put(frame)       
                     break
                 else:

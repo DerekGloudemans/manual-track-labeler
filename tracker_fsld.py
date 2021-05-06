@@ -97,7 +97,7 @@ class Localization_Tracker():
         # store filter params
         kf_params["R"]       /= params["R_red"]
         kf_params["Q"]       /= params["Q_red"]     
-        kf_params["P"][4:,4:] *= 100
+        kf_params["P"][4:,4:] *= 1000
         self.filter           = Torch_KF(torch.device("cpu"),INIT = kf_params)
         self.state_size = kf_params["Q"].shape[0]
         
@@ -639,8 +639,8 @@ class Localization_Tracker():
             for i in range(0,len(first)):
                 for j in range(0,len(second)):
                     dist[i,j] = 1 - self.iou(first[i],second[j].data.numpy())
-                    # if np.isnan(dist[i,j]):
-                    #     dist[i,j] = 1
+                    if np.isnan(dist[i,j]):
+                        dist[i,j] = 1
         a, b = linear_sum_assignment(dist)
         
         
@@ -911,7 +911,7 @@ class Localization_Tracker():
             fps_noload = round(frame_num/(time.time()-self.start_time-self.time_metrics["load"] - self.time_metrics["plot"]),2)
             print("\rTracking frame {} of {}. {} FPS ({} FPS without loading)".format(frame_num,self.n_frames,fps,fps_noload), end = '\r', flush = True)
             
-            if frame_num > 500:
+            if frame_num > 1000:
                 break
             
         # clean up at the end
@@ -1036,7 +1036,7 @@ class Localization_Tracker():
         
         
         # create time header and data
-        fps = self.frames_processed / (self.end_time - self.start_time)
+        fps = self.n_frames / (self.end_time - self.start_time)
         time_header = ["Processing fps"]
         time_data = [fps]
         for item in self.time_metrics.keys():
@@ -1066,6 +1066,8 @@ class Localization_Tracker():
             "BBox ymin",
             "BBox xmax",
             "BBox ymax",
+            "vel_x",
+            "vel_y",
             "Generation method",
             "GPS lat of bbox bottom center",
             "GPS long of bbox bottom center"
@@ -1097,7 +1099,7 @@ class Localization_Tracker():
             # write main chunk
             out.writerow(data_header)
             
-            for frame in range(self.frames_processed):
+            for frame in range(self.n_frames):
                 try:
                     timestamp = self.all_timestamps[frame]
                 except:
@@ -1119,9 +1121,11 @@ class Localization_Tracker():
                         obj_line.append(id)
                         obj_line.append(self.class_dict[np.argmax(self.all_classes[id])])
                         obj_line.append(bbox[0])
-                        obj_line.append(bbox[2])
                         obj_line.append(bbox[1])
+                        obj_line.append(bbox[2])
                         obj_line.append(bbox[3])
+                        obj_line.append(bbox[4])
+                        obj_line.append(bbox[5])
                         obj_line.append(gen)
                         
                         centx = (bbox[0]+bbox[2])/2.0
