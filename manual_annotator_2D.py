@@ -135,7 +135,7 @@ class Annotator_2D():
         for frame in self.labels:
             labels = self.labels[frame]
             for box in labels:
-                if int(box[2]) == obj_idx:
+                if int(box[2]) == obj_idx and float(box[8]) != 0:
                     cls = box[3]
                     vel_x = float(box[8])
                     vel_y = float(box[9])
@@ -144,7 +144,8 @@ class Annotator_2D():
                 break
         
         if cls is None:
-            cls = input("This object does not exist elsewhere. Input class:")
+            print("This object does not exist elsewhere. Input class:")
+            cls = self.keyboard_input()
         
         timestamp = ""
         for box in self.labels[self.frame_num]:
@@ -152,7 +153,7 @@ class Annotator_2D():
                 timestamp = box[1]
                 break
         
-        new_row = [self.frame_num,timestamp,obj_idx,cls,bbox[0],bbox[1],bbox[2],bbox[3],vel_x,vel_y]
+        new_row = [self.frame_num,timestamp,obj_idx,cls,bbox[0],bbox[1],bbox[2],bbox[3],vel_x,vel_y,"Manual Annotation"]
         print(new_row)
         self.labels[self.frame_num].append(new_row)
         
@@ -287,7 +288,7 @@ class Annotator_2D():
                         break
                 output_rows.append(row)
 
-        frames = self.labels.keys()
+        frames = list(self.labels.keys())
         frames.sort()
         
         for frame in frames:
@@ -295,7 +296,7 @@ class Annotator_2D():
                 output_rows.append(row)
     
         # write final output file
-        outfile = label_file.split(".csv")[0] + "_corrected.csv"
+        outfile = self.label_path.split(".csv")[0] + "_corrected.csv"
         with open(outfile, mode='w') as f:
             out = csv.writer(f, delimiter=',')
             out.writerows(output_rows)
