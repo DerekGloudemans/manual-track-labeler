@@ -23,8 +23,10 @@ class Annotator_2D():
         
         self.sequence_path = sequence
         self.label_path = sequence.split(".mp4")[0] + "_track_outputs.csv"
+        self.load_corrected = False
         if load_corrected:
             self.label_path = sequence.split(".mp4")[0] + "_track_outputs_corrected.csv"
+            self.load_corrected = True
         self.ds = ds
         
         # open VideoCapture
@@ -53,6 +55,9 @@ class Annotator_2D():
             read = csv.reader(f)
             HEADERS = True
             for row in read:
+                
+                if len(row) == 0 :
+                    continue
                 
                 if not HEADERS:
                     frame_idx = int(row[0])
@@ -90,9 +95,11 @@ class Annotator_2D():
         """
         Replots current frame
         """
-        
-        cur_frame_objs = self.labels[self.frame_num].copy()
-    
+        try:
+            cur_frame_objs = self.labels[self.frame_num].copy()
+        except:
+            cur_frame_objs = []
+            
         index_in_buffer = -(self.buffer_frame_num - self.frame_num) - 1
         self.cur_frame = self.frame_buffer[index_in_buffer].copy()
         
@@ -106,7 +113,17 @@ class Annotator_2D():
             self.cur_frame = cv2.rectangle(self.cur_frame,(bbox[0],bbox[1]),(bbox[2],bbox[3]),color,2)
             self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(int(bbox[0]),int(bbox[1] - 10)),cv2.FONT_HERSHEY_PLAIN,2,(0,0,0),3)
             self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(int(bbox[0]),int(bbox[1] - 10)),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),1)
-    
+        
+        label = "Remove all boxes not on a vehicle"
+        self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(10,50),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),2)
+        label = "Add boxes for all objects fully in frame"
+        self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(10,80),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),2)
+        label = "Ensure each object has only one ID"
+        self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(10,110),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),2)
+
+        if self.frame_num % 100 == 0:
+                self.save()
+
     def delete(self,obj_idx):
         """
         Delete object obj_idx in this and all subsequent frames
@@ -143,6 +160,16 @@ class Annotator_2D():
             if cls is not None:
                 break
         
+        if cls is None: # try again but accepting boxes with no speed estimate
+            for frame in self.labels:
+                labels = self.labels[frame]
+                for box in labels:
+                    if int(box[2]) == obj_idx:
+                        cls = box[3]
+                        break
+                if cls is not None:
+                    break
+            
         if cls is None:
             print("This object does not exist elsewhere. Input class:")
             cls = self.keyboard_input()
@@ -158,6 +185,8 @@ class Annotator_2D():
         self.labels[self.frame_num].append(new_row)
         
         print("Added box for object {} to frame {}".format(obj_idx,self.frame_num))
+        
+        self.next() # for convenience
         
         
     def reassign(self,old,new):
@@ -205,6 +234,42 @@ class Annotator_2D():
         else:
             print("Can't undo the last operation")
        
+    def interpolate(self,obj_idx):
+        """
+        Interpolate boxes between any gaps in the selected box
+        """
+        
+        prev_frame = -1
+        prev_box = None
+        cls = None
+        for frame in self.labels:
+            try:
+                for row in self.labels[frame]:
+                    if int(row[2]) == obj_idx: # see if obj_idx is in this frame
+                        # if we have prev_box, interpolate all boxes between
+                        if prev_frame != -1:
+                            box = np.array(row[4:10]).astype(float)
+                            for f_idx in range(prev_frame + 1, frame):   # for each frame between:
+                                p1 = float(frame - f_idx) / float(frame - prev_frame)
+                                p2 = 1.0 - p1
+                                
+                                newbox = p1 * prev_box + p2 * box
+                                new_row = [f_idx,"",obj_idx,cls,newbox[0],newbox[1],newbox[2],newbox[3],newbox[4],newbox[5]]
+                                
+                                self.labels[f_idx].append(new_row)
+                        
+                        # lastly, update prev_frame
+                        prev_frame = frame
+                        prev_box = np.array(row[4:10]).astype(float)
+                        cls = row[3]
+                        continue
+                    
+                    
+            except KeyError:
+                continue
+            
+        print("Added interpolated boxes for object {}".format(obj_idx))
+        self.plot()
             
 
     def find_box(self,point):
@@ -237,7 +302,7 @@ class Annotator_2D():
                 self.frame_buffer.append(frame.copy())
                 self.cur_frame = frame.copy()
                 
-                if len(self.frame_buffer) > 30:
+                if len(self.frame_buffer) > 100:
                     self.frame_buffer = self.frame_buffer[1:]
                 
                 self.frame_num += 1
@@ -253,8 +318,23 @@ class Annotator_2D():
             
         else:
             print("On last frame, cannot advance to next frame")
-        
-        
+
+    
+    
+    def skip_to(self,frame_idx):
+         while self.frame_num < frame_idx:
+             ret = self.cap.grab()
+             self.frame_num += 1
+             print(self.frame_num)
+             
+         ret,frame = self.cap.retrieve()
+         if self.ds != 1:
+             frame = cv2.resize(frame,(frame.shape[1]//self.ds,frame.shape[0]//self.ds))
+         self.frame_buffer.append(frame.copy())
+         self.cur_frame = frame.copy()
+         self.buffer_frame_num = self.frame_num
+         
+         self.plot()
         
     def prev(self):
         """
@@ -284,9 +364,10 @@ class Annotator_2D():
                 if HEADERS:
                     if len(row) > 0 and row[0][0:5] == "Frame":
                         HEADERS = False # all header lines have been read at this point
-                        row = row 
+                        output_rows.append(row)
                         break
-                output_rows.append(row)
+                else:
+                    output_rows.append(row)
 
         frames = list(self.labels.keys())
         frames.sort()
@@ -296,7 +377,10 @@ class Annotator_2D():
                 output_rows.append(row)
     
         # write final output file
-        outfile = self.label_path.split(".csv")[0] + "_corrected.csv"
+        if self.load_corrected:
+            outfile = self.label_path
+        else:
+            outfile = self.label_path.split(".csv")[0] + "_corrected.csv"
         with open(outfile, mode='w') as f:
             out = csv.writer(f, delimiter=',')
             out.writerows(output_rows)
@@ -336,7 +420,7 @@ class Annotator_2D():
                 if self.active_command == "DELETE":
                     obj_idx = self.find_box(self.new)
                     self.delete(obj_idx)
-
+                    
                 elif self.active_command == "ADD":
                     # get obj_idx
                     try:
@@ -394,11 +478,16 @@ class Annotator_2D():
                 self.active_command = "ADD"
            elif key == ord("w"):
                 self.active_command = "REDRAW"
-           
+           elif key == ord("s"):
+                    frame_idx = int(self.keyboard_input())
+                    self.skip_to(frame_idx)          
+           elif key == ord("i"):
+                    obj_idx = int(self.keyboard_input())
+                    self.interpolate(obj_idx)         
            elif key == ord("q"):
                 self.quit()
            elif key == ord("u"):
-               self.undo()
+                self.undo()
            
         
         
@@ -406,5 +495,6 @@ class Annotator_2D():
 if __name__ == "__main__":
     
     test_path = "/home/worklab/Data/cv/3D examples for Dan/record_p1c2_00000.mp4"
-    ann = Annotator_2D(test_path,load_corrected = False)
+    #test_path = "C:\\Users\\derek\\Desktop\\2D to 3D conversion Examples April 2021-selected\\record_p1c2_00000.mp4"
+    ann = Annotator_2D(test_path,load_corrected = True)
     ann.run()
