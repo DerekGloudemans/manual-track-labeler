@@ -19,7 +19,7 @@ import torch
 
 from torchvision.transforms import functional as F
 import torch.multiprocessing as mp
-
+from util.timestamp_utilities import parse_frame_timestamp,get_precomputed_checksums,get_timestamp_geometry
 
 class FrameLoader():
     
@@ -211,6 +211,11 @@ def load_to_queue(image_queue,files,device,queue_size,downsample):
         
 def load_to_queue_video(image_queue,sequence,device,queue_size,s,downsample,show):
     
+    checksum_path="/home/worklab/Documents/derek/I24-video-processing/I24-video-ingest/resources/timestamp_pixel_checksum_6.pkl"
+    geom_path="/home/worklab/Documents/derek/I24-video-processing/I24-video-ingest/resources/timestamp_geometry_4K.pkl"
+    checksums = get_precomputed_checksums(checksum_path)
+    geom = get_timestamp_geometry(geom_path)
+    
     cap = cv2.VideoCapture(sequence)
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
@@ -230,11 +235,11 @@ def load_to_queue_video(image_queue,sequence,device,queue_size,s,downsample,show
                 else:
                     
                     timestamp = None # deal with this later
-                    # if checksum_path is not None:
-                    #     # get timestamp
-                    #     timestamp = parse_frame_timestamp(frame_pixels = original_im, timestamp_geometry = geom, precomputed_checksums = checksums)
-                    #     if timestamp[0] is None:
-                    #         timestamp = None
+                    if checksum_path is not None:
+                        # get timestamp
+                        timestamp = parse_frame_timestamp(frame_pixels = original_im, timestamp_geometry = geom, precomputed_checksums = checksums)[0]
+                        if timestamp is None:
+                            timestamp = None
                     
                     if downsample != 1:   
                         size1 = original_im.shape[0] //downsample

@@ -910,7 +910,7 @@ class Localization_Tracker():
             fps = round(frame_num/(time.time() - self.start_time),2)
             fps_noload = round(frame_num/(time.time()-self.start_time-self.time_metrics["load"] - self.time_metrics["plot"]),2)
             print("\rTracking frame {} of {}. {} FPS ({} FPS without loading)".format(frame_num,self.n_frames,fps,fps_noload), end = '\r', flush = True)
-            
+            print(timestamp)
             if frame_num > 1000:
                 break
             
