@@ -55,7 +55,7 @@ First, copy or move all files you'd like to correct to `outputs/track/`
 python manual_annotator_2D.py <path>
 ```
 
-where `<path>` is the name of the track output file stored in `outputs/track/`. The resulting corrected track file will be written to `outputs/track_corrected/`.
+where `<path>` is path to the video file, which should have a correspoding track output file stored in `outputs/track/`. The resulting corrected track file will be written to `outputs/track_corrected/`.
 
 ## 2D Annotation Controls
  - `9` - advance to next frame
