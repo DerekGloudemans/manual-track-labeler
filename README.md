@@ -91,4 +91,4 @@ The following guidelines are used for 2D label correction:
 - All boxes not corresponding to an object should be deleted
 - For cameras on the edge of each pole (cameras 1 and 6) objects should be labeled until they are at least 2/3 out of the field of view but don't need to be labeled through the entire frame.
 
-A tutorial video can be found [here](ADD LINK).
+A tutorial video can be found [here](https://github.com/DerekGloudemans/manual-track-labeler/releases/download/v1.0/zoom_1.mp4).
