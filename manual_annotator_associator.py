@@ -5,13 +5,11 @@ import os
 import cv2
 import csv
 import copy
-import torch
 import argparse
 import string
-import _pickle as pickle
+
 import cv2 as cv
-from PIL import Image
-from torchvision.transforms import functional as F
+
 
 
 class Annotator_2D():
