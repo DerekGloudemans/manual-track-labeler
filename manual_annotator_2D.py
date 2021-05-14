@@ -520,8 +520,24 @@ class Annotator_2D():
         
 if __name__ == "__main__":
     
-    sequence = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c6_00001.mp4"
-    label_dir = "/home/worklab/Documents/derek/i24-dataset-gen/output"
+    try:
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument("sequence",help = "path to video")
+
+        args = parser.parse_args()
+        sequence = args.sequence
+        label_dir = "./_output"
+
+       
+        
+    except:
+         print("Using default path instead")
+         sequence = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c6_00001.mp4"
+         label_dir = "/home/worklab/Documents/derek/i24-dataset-gen/output"
+
+         
+    
     #test_path = "C:\\Users\\derek\\Desktop\\2D to 3D conversion Examples April 2021-selected\\record_p1c2_00000.mp4"
     ann = Annotator_2D(sequence,label_dir,load_corrected = True)
     ann.run()
