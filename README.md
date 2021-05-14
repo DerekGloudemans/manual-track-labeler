@@ -90,3 +90,5 @@ The following guidelines are used for 2D label correction:
 - Especially for trucks, remove all boxes for which the truck is partially out of frame and the bounding box is not sized correctly. (This can be easily accomplished by finding the first frame in which the truck is entirely in-frame, reassigning the truck with a new, unused object ID at this frame (such as 99999), returning to the first frame in which the truck is detected, deleting the object, fast-forwarding to the first frame in which the relabeled (and thus not deleted) object is found, and reassigning the original label to that object
 - All boxes not corresponding to an object should be deleted
 - For cameras on the edge of each pole (cameras 1 and 6) objects should be labeled until they are at least 2/3 out of the field of view but don't need to be labeled through the entire frame.
+
+A tutorial video can be found [here](ADD LINK).
