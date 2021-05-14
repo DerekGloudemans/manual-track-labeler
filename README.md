@@ -69,7 +69,7 @@ where `<path>` is the name of the track output file stored in `outputs/track/`. 
 - `f` - fast forward through frames. At any time, you can press enter or f to stop fast-forwarding.
 - `q` - save and quit
 - `i` - pressing `i` followed by an object ID number and enter will interpolate all missing bounding boxes for that object between the first and last frames in which it is detected. When adding boxes for an object, you can generally add a box every 5-10 frames and then interpolate the boxes between these.
-![](_readme_ims/2d_example.png)
+![](readme_ims/2d_example.png)
 
 ## Cross-sequence Association Controls
 - `1`- move to previous frame in left sequence
@@ -81,7 +81,7 @@ where `<path>` is the name of the track output file stored in `outputs/track/`. 
 - `u` - undo the last labeling change
 - `q` - save and quit
 
-![](_readme_ims/ReID_example.png)
+![](readme_ims/ReID_example.png)
 
 
 ## Labeling guidelines
