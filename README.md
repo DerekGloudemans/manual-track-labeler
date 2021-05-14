@@ -4,6 +4,7 @@ This repository contains code for manually correcting 2D object tracking data to
 ## Included files
 - **`manual_annotator_2D.py`** -  for correcting 2D object tracking dat
 - **`manual_annotator_associator.py`** -  for associating objects across sequences
+- `outputs/` -directory where all data is stored
 - `train_detector.py` -for training object detector for LBT
 - `train_localizer.py` - for training object localizer for LBT
 - `track_all.py` - for tracking 
@@ -11,7 +12,9 @@ This repository contains code for manually correcting 2D object tracking data to
 - `config/` - contains Kalman Filter parameters, model parameters, etc. for generating initial object tracks
 - `model/`  - contains object detector/localizer code (Retinanet is used)
 - `util/`   - contains various utilities for object tracking
-
+- `requirements.txt` - pip-style spec for python environment
+- `environment.yml` - conda-style spec for python environment
+- 
 ## Requirements
 - Python 3 ( Python 3.6 or later is best)
 - pip or anaconda
@@ -46,11 +49,16 @@ conda activate mtl-env
 ```
 
 # Usage
+First, copy or move all files you'd like to correct to `outputs/track/`
 
 ```
 python manual_annotator_2D.py <path>
 ```
 
-## Labeling guidelines
+where `<path>` is the name of the track output file stored in `outputs/track/`. The resulting corrected track file will be written to `outputs/track_corrected/`.
 
 ## Controls
+
+
+## Labeling guidelines
+
