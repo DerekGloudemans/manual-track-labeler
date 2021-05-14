@@ -16,18 +16,28 @@ from torchvision.transforms import functional as F
 
 class Annotator_2D():
     
-    def __init__(self,sequence, ds = 1,load_corrected = False):
+    def __init__(self,sequence,label_dir, ds = 1,load_corrected = False):
         """
         sequence - path to video file
         """
         
         self.sequence_path = sequence
-        self.label_path = sequence.split(".mp4")[0] + "_track_outputs.csv"
+        self.sequence_short_name = sequence.split("/")[-1].split(".mp4")[0]
+        
+        self.label_path = os.path.join(label_dir,"track", self.sequence_short_name + "_track_outputs.csv")
         self.load_corrected = False
+        
         if load_corrected:
-            self.label_path = sequence.split(".mp4")[0] + "_track_outputs_corrected.csv"
-            self.load_corrected = True
+            if os.path.exists(os.path.join(label_dir,"track_corrected", self.sequence_short_name + "_track_outputs_corrected.csv")):
+                self.label_path = os.path.join(label_dir,"track_corrected", self.sequence_short_name + "_track_outputs_corrected.csv")
+                self.load_corrected = True
+        
+        # write final output file
+        self.outfile = os.path.join(label_dir,"track_corrected", self.sequence_short_name + "_track_outputs_corrected.csv")
+        
         self.ds = ds
+        
+        
         
         # open VideoCapture
         self.cap = cv2.VideoCapture(sequence)
@@ -46,7 +56,7 @@ class Annotator_2D():
         self.new = None # used to store a new box to be plotted temporarily
         self.cont = True
         self.active_command = None
-        self.colors = (np.random.rand(100,3))*255
+        self.colors = (np.random.rand(100000,3))*255
         self.last_active_obj_idx = -1
         
         # load labels
@@ -107,7 +117,7 @@ class Annotator_2D():
             cls = box[3]
             oidx = int(box[2])
             bbox = np.array(box[4:8]).astype(float).astype(int)
-            color = self.colors[oidx%100]
+            color = self.colors[oidx%100000]
             
             label = "{} {}".format(cls,oidx)
             self.cur_frame = cv2.rectangle(self.cur_frame,(bbox[0],bbox[1]),(bbox[2],bbox[3]),color,2)
@@ -175,14 +185,20 @@ class Annotator_2D():
             cls = self.keyboard_input()
         
         timestamp = ""
-        for box in self.labels[self.frame_num]:
-            if len(box[1]) > 0:
-                timestamp = box[1]
-                break
+        try:
+            for box in self.labels[self.frame_num]:
+                if len(box[1]) > 0:
+                    timestamp = box[1]
+                    break
+        except:
+            pass
         
         new_row = [self.frame_num,timestamp,obj_idx,cls,bbox[0],bbox[1],bbox[2],bbox[3],vel_x,vel_y,"Manual Annotation"]
         print(new_row)
-        self.labels[self.frame_num].append(new_row)
+        try:
+            self.labels[self.frame_num].append(new_row)
+        except:
+            self.labels[self.frame_num] = [new_row]
         
         print("Added box for object {} to frame {}".format(obj_idx,self.frame_num))
         
@@ -215,6 +231,11 @@ class Annotator_2D():
         for row in self.labels[self.frame_num]:
             if int(row[2]) == obj_idx:
                 row[4:8] = box
+                try:
+                    row[10] = "Manual Annotation"
+                except:
+                    row.append("Manual Annotation")
+                        
                 
         print("Redrew box {} for frame {}".format(obj_idx,self.frame_num))
         
@@ -242,7 +263,7 @@ class Annotator_2D():
         prev_frame = -1
         prev_box = None
         cls = None
-        for frame in self.labels:
+        for frame in range(0,self.length):
             try:
                 for row in self.labels[frame]:
                     if int(row[2]) == obj_idx: # see if obj_idx is in this frame
@@ -254,9 +275,12 @@ class Annotator_2D():
                                 p2 = 1.0 - p1
                                 
                                 newbox = p1 * prev_box + p2 * box
-                                new_row = [f_idx,"",obj_idx,cls,newbox[0],newbox[1],newbox[2],newbox[3],newbox[4],newbox[5]]
+                                new_row = [f_idx,"",obj_idx,cls,newbox[0],newbox[1],newbox[2],newbox[3],newbox[4],newbox[5],"Interpolation"]
                                 
-                                self.labels[f_idx].append(new_row)
+                                try:
+                                    self.labels[f_idx].append(new_row)
+                                except:
+                                    self.labels[f_idx] = [new_row]
                         
                         # lastly, update prev_frame
                         prev_frame = frame
@@ -302,7 +326,7 @@ class Annotator_2D():
                 self.frame_buffer.append(frame.copy())
                 self.cur_frame = frame.copy()
                 
-                if len(self.frame_buffer) > 100:
+                if len(self.frame_buffer) > 200:
                     self.frame_buffer = self.frame_buffer[1:]
                 
                 self.frame_num += 1
@@ -376,12 +400,8 @@ class Annotator_2D():
             for row in self.labels[frame]:
                 output_rows.append(row)
     
-        # write final output file
-        if self.load_corrected:
-            outfile = self.label_path
-        else:
-            outfile = self.label_path.split(".csv")[0] + "_corrected.csv"
-        with open(outfile, mode='w') as f:
+        
+        with open(self.outfile, mode='w') as f:
             out = csv.writer(f, delimiter=',')
             out.writerows(output_rows)
             
@@ -403,7 +423,16 @@ class Annotator_2D():
             if key == ord("\n") or key == ord("\r"):
                 break
         return keys
-              
+    
+    def scan(self):
+        while cv2.waitKey(1) not in [ord("\n"), ord("\r"),ord("f")]:
+            self.next()
+            
+            self.cur_frame = cv2.resize(self.cur_frame,(1920,1080))
+            cv2.imshow("window", self.cur_frame)
+            title = "Frame {}/{} --- Active Command: {}".format(self.frame_num,self.length,self.active_command)
+            cv2.setWindowTitle("window",str(title))
+          
     def run(self):
         """
         Main processing loop
@@ -488,13 +517,15 @@ class Annotator_2D():
                 self.quit()
            elif key == ord("u"):
                 self.undo()
-           
+           elif key == ord("f"):
+               self.scan()
         
         
         
 if __name__ == "__main__":
     
-    test_path = "/home/worklab/Data/cv/3D examples for Dan/record_p1c2_00000.mp4"
+    sequence = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c5_00001.mp4"
+    label_dir = "/home/worklab/Documents/derek/i24-dataset-gen/output"
     #test_path = "C:\\Users\\derek\\Desktop\\2D to 3D conversion Examples April 2021-selected\\record_p1c2_00000.mp4"
-    ann = Annotator_2D(test_path,load_corrected = True)
+    ann = Annotator_2D(sequence,label_dir,load_corrected = True)
     ann.run()

@@ -113,6 +113,8 @@ if __name__ == "__main__":
             track_name = sequence.split("/")[-1].split(".")[0]
             save_file = os.path.join(out_dir,"results_{}.cpkl".format(track_name))
             
+            if "p2" not in track_name:
+                continue
             
             if os.path.exists(save_file):
                 continue
