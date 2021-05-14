@@ -5,13 +5,9 @@ import os
 import cv2
 import csv
 import copy
-import torch
 import argparse
 import string
-import _pickle as pickle
 import cv2 as cv
-from PIL import Image
-from torchvision.transforms import functional as F
 
 
 class Annotator_2D():
@@ -524,7 +520,7 @@ class Annotator_2D():
         
 if __name__ == "__main__":
     
-    sequence = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c5_00001.mp4"
+    sequence = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c6_00001.mp4"
     label_dir = "/home/worklab/Documents/derek/i24-dataset-gen/output"
     #test_path = "C:\\Users\\derek\\Desktop\\2D to 3D conversion Examples April 2021-selected\\record_p1c2_00000.mp4"
     ann = Annotator_2D(sequence,label_dir,load_corrected = True)
