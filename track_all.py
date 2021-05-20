@@ -54,7 +54,7 @@ if __name__ == "__main__":
      print("\nStarting tracking run with the following settings:")
      print("GPU ID:       {}".format(GPU_ID))
      print("Output directory: {}".format(out_dir))
-     OUTVID = None
+     OUTVID = "vid"
      
                 
                 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
             track_name = sequence.split("/")[-1].split(".")[0]
             save_file = os.path.join(out_dir,"results_{}.cpkl".format(track_name))
             
-            if "p2" not in track_name:
+            if "p3" not in track_name:
                 continue
             
             if os.path.exists(save_file):

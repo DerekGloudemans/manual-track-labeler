@@ -33,8 +33,6 @@ class Annotator_2D():
         
         self.ds = ds
         
-        
-        
         # open VideoCapture
         self.cap = cv2.VideoCapture(sequence)
         ret,frame = self.cap.read()
@@ -523,21 +521,22 @@ if __name__ == "__main__":
     try:
 
         parser = argparse.ArgumentParser()
-        parser.add_argument("sequence",help = "path to video")
+        parser.add_argument("sequence",help = "video ID such as p1c2_00001")
 
         args = parser.parse_args()
         sequence = args.sequence
-        label_dir = "./_output"
+        video = "./_data/track/record_{}.mp4".format(sequence)
+        label_dir = "./_data"
 
        
         
     except:
          print("Using default path instead")
-         sequence = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c6_00001.mp4"
+         video = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p3c1_00000.mp4"
          label_dir = "/home/worklab/Documents/derek/i24-dataset-gen/output"
 
          
     
     #test_path = "C:\\Users\\derek\\Desktop\\2D to 3D conversion Examples April 2021-selected\\record_p1c2_00000.mp4"
-    ann = Annotator_2D(sequence,label_dir,load_corrected = True)
+    ann = Annotator_2D(video,label_dir,load_corrected = True)
     ann.run()

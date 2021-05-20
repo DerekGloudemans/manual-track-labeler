@@ -8,3 +8,5 @@ _model/py_ret_det_multigpu/images/
 output/
 
 manual_annotator_2D_from_PC.py
+
+*.mp4
