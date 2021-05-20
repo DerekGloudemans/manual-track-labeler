@@ -4,7 +4,7 @@ This repository contains code for manually correcting 2D object tracking data to
 ## Included files
 - **`manual_annotator_2D.py`** -  for correcting 2D object tracking dat
 - **`manual_annotator_associator.py`** -  for associating objects across sequences
-- `outputs/` -directory where all data is stored
+- `_output/` -directory where all data is stored
 - `train_detector.py` -for training object detector for LBT
 - `train_localizer.py` - for training object localizer for LBT
 - `track_all.py` - for tracking 
@@ -55,7 +55,7 @@ First, copy or move all files you'd like to correct to `outputs/track/`
 python manual_annotator_2D.py <path>
 ```
 
-where `<path>` is path to the video file, which should have a correspoding track output file stored in `outputs/track/`. The resulting corrected track file will be written to `outputs/track_corrected/`.
+where `<path>` is path to the video file, which should have a correspoding track output file stored in `_output/track/`. The resulting corrected track file will be written to `_output/track_corrected/`.
 
 ## 2D Annotation Controls
  - `9` - advance to next frame
@@ -91,4 +91,4 @@ The following guidelines are used for 2D label correction:
 - All boxes not corresponding to an object should be deleted
 - For cameras on the edge of each pole (cameras 1 and 6) objects should be labeled until they are at least 2/3 out of the field of view but don't need to be labeled through the entire frame.
 
-A tutorial video can be found [here](ADD LINK).
+A tutorial video can be found [here](https://github.com/DerekGloudemans/manual-track-labeler/releases/download/v1.0/zoom_1.mp4).
