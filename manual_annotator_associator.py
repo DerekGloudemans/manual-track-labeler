@@ -506,7 +506,7 @@ class Annotator_2D():
            cur_frame = self.cur_frame.copy()
            cur_frame = cv2.resize(cur_frame,(cur_frame.shape[1]//self.plot_ds,cur_frame.shape[0]//self.plot_ds))
            cv2.imshow("window", cur_frame)
-           title = "Frame {}/{} of {}/{}".format(self.frame_num1,self.frame_num2,self.length1,self.length2)
+           title = "Frame {}/{} of {}/{}".format(self.frame_num1,self.length1,self.frame_num2,self.length2)
            cv2.setWindowTitle("window",str(title))
            
            key = cv2.waitKey(1)
@@ -527,9 +527,13 @@ class Annotator_2D():
         
 if __name__ == "__main__":
     
-    sequence1 = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c6_00001.mp4"
-    sequence2 = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c5_00001.mp4"
-    label_dir = "/home/worklab/Documents/derek/i24-dataset-gen/output"
+    # sequence1 = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c6_00001.mp4"
+    # sequence2 = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c5_00001.mp4"
+    # label_dir = "/home/worklab/Documents/derek/i24-dataset-gen/output"
+    
+    sequence1 = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/p1c5_00000.mp4"
+    sequence2 = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/p1c4_00000.mp4"
+    label_dir = "/home/worklab/Data/dataset_alpha"
     #test_path = "C:\\Users\\derek\\Desktop\\2D to 3D conversion Examples April 2021-selected\\record_p1c2_00000.mp4"
     ann = Annotator_2D(sequence1,sequence2,label_dir)
     ann.run()

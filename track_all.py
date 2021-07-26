@@ -27,7 +27,7 @@ if __name__ == "__main__":
      #add argparse block here so we can optinally run from command line
      #add argparse block here so we can optinally run from command line
      try:
-        directory = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording"
+        #directory = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording"
 
         parser = argparse.ArgumentParser()
         parser.add_argument("-directory",help = "path to video directory",default = directory)
@@ -46,9 +46,10 @@ if __name__ == "__main__":
         
      except:
          directory = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording"
+         directory = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed"
          GPU_ID = 0
          SHOW = True
-         out_dir = "output"
+         out_dir = "/home/worklab/Data/dataset_alpha"
 
          
      print("\nStarting tracking run with the following settings:")
@@ -113,8 +114,6 @@ if __name__ == "__main__":
             track_name = sequence.split("/")[-1].split(".")[0]
             save_file = os.path.join(out_dir,"results_{}.cpkl".format(track_name))
             
-            if "p3" not in track_name:
-                continue
             
             if os.path.exists(save_file):
                 continue

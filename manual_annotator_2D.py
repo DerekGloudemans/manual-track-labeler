@@ -535,7 +535,8 @@ if __name__ == "__main__":
          video = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p3c1_00000.mp4"
          label_dir = "/home/worklab/Documents/derek/i24-dataset-gen/output"
 
-         
+         video= "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/p1c1_trimmed.mp4"
+         label_dir = "/home/worklab/Data/dataset_alpha"
     
     #test_path = "C:\\Users\\derek\\Desktop\\2D to 3D conversion Examples April 2021-selected\\record_p1c2_00000.mp4"
     ann = Annotator_2D(video,label_dir,load_corrected = True)
