@@ -4,7 +4,7 @@ This repository contains code for manually correcting 2D object tracking data to
 ## Included files
 - **`manual_annotator_2D.py`** -  for correcting 2D object tracking dat
 - **`manual_annotator_associator.py`** -  for associating objects across sequences
-- `_output/` -directory where all data is stored
+- `_data/` -directory where all data is stored
 - `train_detector.py` -for training object detector for LBT
 - `train_localizer.py` - for training object localizer for LBT
 - `track_all.py` - for tracking 
@@ -49,13 +49,13 @@ conda activate mtl-env
 ```
 
 # Usage
-First, copy or move all files you'd like to correct to `outputs/track/`
+First, copy or move all files you'd like to correct to `_data/track/`
 
 ```
-python manual_annotator_2D.py <path>
+python manual_annotator_2D.py <sequence name>
 ```
 
-where `<path>` is path to the video file, which should have a correspoding track output file stored in `_output/track/`. The resulting corrected track file will be written to `_output/track_corrected/`.
+where `<sequence name>` is video identifier (e.g. p1c1_00001). The resulting corrected track file will be written to `_output/track_corrected/`.
 
 ## 2D Annotation Controls
  - `9` - advance to next frame
