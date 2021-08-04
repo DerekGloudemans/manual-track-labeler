@@ -137,7 +137,7 @@ class FrameLoader():
         else:
             self.worker.terminate()
             self.worker.join()
-            return [-1,None,None,None]
+            return [-1,None,None,None,None]
 
 def load_to_queue(image_queue,files,device,queue_size,downsample):
     """

@@ -27,7 +27,8 @@ if __name__ == "__main__":
      #add argparse block here so we can optinally run from command line
      #add argparse block here so we can optinally run from command line
      try:
-        #directory = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording"
+        directory = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments"
+
 
         parser = argparse.ArgumentParser()
         parser.add_argument("-directory",help = "path to video directory",default = directory)
@@ -46,12 +47,12 @@ if __name__ == "__main__":
         
      except:
          directory = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording"
-         directory = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed"
+         directory = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments"
          GPU_ID = 0
          SHOW = True
-         out_dir = "/home/worklab/Data/dataset_alpha"
-
          
+
+     out_dir = "/home/worklab/Data/dataset_alpha/track_2d"    
      print("\nStarting tracking run with the following settings:")
      print("GPU ID:       {}".format(GPU_ID))
      print("Output directory: {}".format(out_dir))
@@ -112,7 +113,7 @@ if __name__ == "__main__":
         for sequence in tracks:           
             
             track_name = sequence.split("/")[-1].split(".")[0]
-            save_file = os.path.join(out_dir,"results_{}.cpkl".format(track_name))
+            save_file = os.path.join(out_dir,"{}_track_outputs.csv".format(track_name))
             
             
             if os.path.exists(save_file):
@@ -131,6 +132,7 @@ if __name__ == "__main__":
                                            class_dict,
                                            config,
                                            PLOT = SHOW,
+                                           out_dir = out_dir,
                                            device_id = GPU_ID,
                                            OUT = OUTVID)
             

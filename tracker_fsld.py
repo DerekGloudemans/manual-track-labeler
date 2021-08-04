@@ -39,6 +39,7 @@ class Localization_Tracker():
                  kf_params,
                  class_dict,
                  config_file,
+                 out_dir = "output",
                  PLOT = True,
                  device_id = 0,
                  OUT = None):
@@ -70,7 +71,7 @@ class Localization_Tracker():
         """
         
         self.input_file_name = sequence
-        self.output_dir = "output"
+        self.output_dir =  out_dir
         
         # parse config file here
         params = self.parse_config_file(config_file)[0]
@@ -903,14 +904,16 @@ class Localization_Tracker():
             self.time_metrics['plot'] += time.time() - start
        
             # load next frame 
-            start = time.time()
-            [frame_num, frame,dim,original_im,timestamp] = next(self.loader)            
-            self.all_timestamps.append(timestamp)
-            self.time_metrics["load"] += time.time() - start
-            fps = round(frame_num/(time.time() - self.start_time),2)
-            fps_noload = round(frame_num/(time.time()-self.start_time-self.time_metrics["load"] - self.time_metrics["plot"]),2)
-            print("\rTracking frame {} of {}. {} FPS ({} FPS without loading)".format(frame_num,self.n_frames,fps,fps_noload), end = '\r', flush = True)
-
+            try:
+                start = time.time()
+                [frame_num, frame,dim,original_im,timestamp] = next(self.loader)            
+                self.all_timestamps.append(timestamp)
+                self.time_metrics["load"] += time.time() - start
+                fps = round(frame_num/(time.time() - self.start_time),2)
+                fps_noload = round(frame_num/(time.time()-self.start_time-self.time_metrics["load"] - self.time_metrics["plot"]),2)
+                print("\rTracking frame {} of {}. {} FPS ({} FPS without loading)".format(frame_num,self.n_frames,fps,fps_noload), end = '\r', flush = True)
+            except:
+                pass
             
         # clean up at the end
         self.frames_processed = frame_num
