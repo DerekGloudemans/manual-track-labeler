@@ -14,7 +14,8 @@ def plot_vehicle_csv(
         show_3d = False,
         show_LMCS = False,
         show_rectified = False,
-        save = False
+        save = False,
+        ds = False
         ):
         
     
@@ -202,7 +203,10 @@ def plot_vehicle_csv(
     # All data gathered from CSV
     if save:      
         outfile = "camera_{}_track_outputs_3D.mp4".format(camera)
-        out = cv2.VideoWriter(outfile,cv2.VideoWriter_fourcc(*'mp4v'), frame_rate, (3840,2160))
+        if ds:
+            out = cv2.VideoWriter(outfile,cv2.VideoWriter_fourcc(*'mp4v'), frame_rate, (1920,1080))
+        else:
+            out = cv2.VideoWriter(outfile,cv2.VideoWriter_fourcc(*'mp4v'), frame_rate, (3840,2160))
     
     cap= cv2.VideoCapture(sequence)
     ret,frame = cap.read()
@@ -310,6 +314,8 @@ def plot_vehicle_csv(
             frame = cv2.putText(frame,"Rectified 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),5)    
             frame = cv2.putText(frame,"Rectified 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(255,0,0),3)    
             
+        if ds:
+            frame = cv2.resize(frame,(1920,1080))
     
         cv2.imshow("frame",frame)
         
@@ -353,6 +359,8 @@ if __name__ == "__main__":
         parser.add_argument("--show_lmcs",action = "store_true")
         parser.add_argument("--show_rectified",action = "store_true")
         parser.add_argument("--save",action = "store_true")
+        parser.add_argument("--ds",action = "store_true")
+
 
 
         args = parser.parse_args()
@@ -364,6 +372,8 @@ if __name__ == "__main__":
         show_rectified = args.show_rectified
         save = args.save
         frame_rate = args.fps
+        ds = args.ds
+
         
      except:
          print("No path specified, using default paths and settings instead")
@@ -373,6 +383,7 @@ if __name__ == "__main__":
          show_rectified = True
          save = False
          frame_rate = 10
+         ds = True
         
          csv_file = "/home/worklab/Data/dataset_alpha_pretrials/rectified_all_img_re_rearranged.csv"
          sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/p1c5_00000.mp4"
@@ -380,4 +391,4 @@ if __name__ == "__main__":
          #sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c1_2.mp4"
     
     
-     plot_vehicle_csv(sequence,csv_file,frame_rate = frame_rate,show_2d = show_2d,show_3d = show_3d,show_LMCS = show_LMCS,show_rectified = show_rectified, save = save)
+     plot_vehicle_csv(sequence,csv_file,frame_rate = frame_rate,show_2d = show_2d,show_3d = show_3d,show_LMCS = show_LMCS,show_rectified = show_rectified, save = save,ds=ds)
