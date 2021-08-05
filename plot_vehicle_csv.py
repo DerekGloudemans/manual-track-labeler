@@ -6,7 +6,7 @@ import queue
 import time
 import argparse
 
-def plot_rectified_objects(
+def plot_vehicle_csv(
         sequence,
         csv_file,
         frame_rate = 10.0,
@@ -98,7 +98,8 @@ def plot_rectified_objects(
             
             #get rid of first row
             if HEADERS:
-                HEADERS = False
+                if len(row) > 0 and row[0] == "Frame #":
+                    HEADERS = False
                 continue
                 
             camera = row[36]
@@ -112,6 +113,7 @@ def plot_rectified_objects(
             if cls != '' and id not in obj_cls.keys():
                 obj_cls[id] = cls
         
+            interp = True if row[10] == "interp 3d" else False
         
             # a. store 2D bbox
             if row[4] != '' and camera == relevant_camera:
@@ -132,7 +134,6 @@ def plot_rectified_objects(
                 try:
                     bbox_3d = np.array(row[11:27]).astype(float).reshape(8,2)
                 except:
-                    print("error")
                     bbox_3d = np.zeros([8,2])
 
             else:
@@ -193,15 +194,15 @@ def plot_rectified_objects(
                     
                 
             if frame_idx in all_frame_data.keys():
-                all_frame_data[frame_idx].append([id,bbox_2d,bbox_3d,im_footprint,rectified_bbox_3d])
+                all_frame_data[frame_idx].append([id,bbox_2d,bbox_3d,im_footprint,rectified_bbox_3d,interp])
             else:
-                all_frame_data[frame_idx] = [[id,bbox_2d,bbox_3d,im_footprint,rectified_bbox_3d]]
+                all_frame_data[frame_idx] = [[id,bbox_2d,bbox_3d,im_footprint,rectified_bbox_3d,interp]]
                                 
             
     # All data gathered from CSV
-            
-    # outfile = label_file.split("_track_outputs_3D.csv")[0] + "_3D.mp4"
-    # out = cv2.VideoWriter(outfile,cv2.VideoWriter_fourcc(*'mp4v'), framerate, (3840,2160))
+    if save:      
+        outfile = "camera_{}_track_outputs_3D.mp4".format(camera)
+        out = cv2.VideoWriter(outfile,cv2.VideoWriter_fourcc(*'mp4v'), frame_rate, (3840,2160))
     
     cap= cv2.VideoCapture(sequence)
     ret,frame = cap.read()
@@ -218,7 +219,7 @@ def plot_rectified_objects(
                 bbox_3d         = box[2]
                 bbox_lmcs       = box[3]
                 bbox_rectified  = box[4]
-                
+                interp          = box[5]
                 try:
                     cls = obj_cls[id]
                 except:
@@ -250,6 +251,8 @@ def plot_rectified_objects(
                     frame = cv2.rectangle(frame,(int(bbox_2d[0]),int(bbox_2d[1])),(int(bbox_2d[2]),int(bbox_2d[3])),color,1)
                     
                 color = (0,255,255)
+                if interp:
+                    color = (0,100,255)
                 if show_3d:
                     for a in range(len(bbox_3d)):
                         ab = bbox_3d[a]
@@ -295,7 +298,10 @@ def plot_rectified_objects(
             frame = cv2.putText(frame,"Auto 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,0,0),5)
             frame = cv2.putText(frame,"Auto 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,255,255),3)
             y_offset += 30
-         
+            frame = cv2.putText(frame,"Interpolated 3D",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,0,0),5)
+            frame = cv2.putText(frame,"Interpolated 3D",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,100,255),3)
+            y_offset += 30
+            
         if show_LMCS:
             frame = cv2.putText(frame,"3D footprint double projected",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,0,0),5)
             frame = cv2.putText(frame,"3D footprint double projected",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,255,0),3)
@@ -307,6 +313,7 @@ def plot_rectified_objects(
     
         cv2.imshow("frame",frame)
         
+        
         if frame_rate == 0:
             key = cv2.waitKey(0)
         else:
@@ -314,12 +321,20 @@ def plot_rectified_objects(
         if key == ord('q') or frame_idx > 1800:
             break
         
+        if save:
+            out.write(frame)
+        
         # get next frame
         ret,frame = cap.read()
         frame_idx += 1     
         
+        
+        
     cv2.destroyAllWindows()
     cap.release()
+    
+    if save:
+        out.release()
     
 
 
@@ -359,10 +374,10 @@ if __name__ == "__main__":
          save = False
          frame_rate = 10
         
-         # csv_file = "/home/worklab/Data/dataset_alpha_pretrials/rectified_all_img_re_rearranged.csv"
-         # sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/p1c5_00000.mp4"
-         csv_file = "/home/worklab/Data/dataset_alpha/automatic_3d/p1c1_2_track_outputs_3D.csv"
-         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c1_2.mp4"
+         csv_file = "/home/worklab/Data/dataset_alpha_pretrials/rectified_all_img_re_rearranged.csv"
+         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/p1c5_00000.mp4"
+         #csv_file = "/home/worklab/Data/dataset_alpha/trial/p1c1_2_track_outputs_3D.csv"
+         #sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c1_2.mp4"
     
     
-     plot_rectified_objects(sequence,csv_file,frame_rate = frame_rate,show_2d = show_2d,show_3d = show_3d,show_LMCS = show_LMCS,show_rectified = show_rectified, save = save)
+     plot_vehicle_csv(sequence,csv_file,frame_rate = frame_rate,show_2d = show_2d,show_3d = show_3d,show_LMCS = show_LMCS,show_rectified = show_rectified, save = save)

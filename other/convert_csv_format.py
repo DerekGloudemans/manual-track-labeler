@@ -7,7 +7,7 @@ import time
 import os
 
 
-directory = "/home/worklab/Data/dataset_alpha/trial"
+directory = "/home/worklab/Data/dataset_alpha/trial1"
 
 for file in os.listdir(directory):
     camera = file.split("_")[0]
@@ -27,9 +27,19 @@ for file in os.listdir(directory):
                 if length > 0:
                     
                     if row[0] == "Frame #":
+                        try:
+                            del row[12]
+                            del row[11]
+                        except:
+                            pass
                         row = row + ["frx","fry","flx","fly","brx","bry","blx","bly","direction","camera","acceleration","speed","x","y","theta","width","length"]
                         HEADERS = False
                     else:
+                        try:
+                            del row[12]
+                            del row[11]
+                        except:
+                            pass
                         pad = ["" for i in range(44-length)]
                         row = row + pad
                         

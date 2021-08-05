@@ -1003,8 +1003,8 @@ if __name__ == "__main__":
     camera_id = "p1c5"
     label_file = "/home/worklab/Data/dataset_alpha_pretrials/rectified_reduced_dummy.csv"
     video      = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/{}_00000.mp4".format(camera_id)
-    vp_file    = "/home/worklab/Documents/derek/2D-to-3D-cars/config/{}_axes.csv".format(camera_id)
-    tf_file    = "/home/worklab/Documents/derek/i24-roadway-transforms/tform/{}_im_lmcs_transform_points.csv".format(camera_id)
+    # vp_file    = "/home/worklab/Documents/derek/2D-to-3D-cars/config/{}_axes.csv".format(camera_id)
+    # tf_file    = "/home/worklab/Documents/derek/i24-roadway-transforms/tform/{}_im_lmcs_transform_points.csv".format(camera_id)
     
     ann = Annotator_3D(video,label_file,tf_file,vp_file, load_corrected =True)
     ann.run()
