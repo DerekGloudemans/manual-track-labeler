@@ -8,7 +8,7 @@ import string
 
 
 directory = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording"
-directory = "/home/worklab/Data/cv/video/ground_truth_video_06162021/"
+directory = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed"
 
 ds = 2
 
@@ -17,8 +17,7 @@ used_cameras = []
 dir_list = os.listdir(directory)
 dir_list.sort()
 for item in dir_list:
-    
-    camera_name = item.split("_")[1]
+    camera_name = item.split("_")[0]
     homography_name = "{}_im_lmcs_transform_points.csv".format(camera_name)
     if  homography_name in os.listdir("tform") and camera_name not in used_cameras:
         used_cameras.append(camera_name)

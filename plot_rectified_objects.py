@@ -180,7 +180,7 @@ def plot_rectified_objects(sequence,csv_file,frame_rate = 15):
 
 
 if __name__ == "__main__":
-    csv_file = "/home/worklab/Data/dataset_alpha/rectified_all_img_re.csv"
+    csv_file = "/home/worklab/Data/dataset_alpha_pretrials/rectified_all_img_re.csv"
     sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/p1c5_00000.mp4"
     
     plot_rectified_objects(sequence,csv_file,frame_rate = 10.0)

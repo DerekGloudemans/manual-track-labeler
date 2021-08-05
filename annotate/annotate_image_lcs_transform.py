@@ -145,7 +145,8 @@ class Transform_Labeler():
             im_pts = []
             lmcs_pts = []
             
-            name = "tform/" + self.directory.split("/")[-1].split("_")[1] + "_im_lmcs_transform_points.csv"
+            
+            name = "tform/" + self.directory.split("/")[-1].split("_")[2] + "_im_lmcs_transform_points.csv"
             with open(name,"r") as f:
                 lines = f.readlines()
                 

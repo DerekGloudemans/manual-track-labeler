@@ -230,6 +230,7 @@ def process_boxes(sequence,label_file,downsample = 1,SHOW = True, timeout = 20,t
                 # cv2.imshow("frame",frame)
                 # cv2.waitKey(1)
                 
+               
                 
             elif count == box_labels:
                 cap.release()
@@ -237,7 +238,10 @@ def process_boxes(sequence,label_file,downsample = 1,SHOW = True, timeout = 20,t
             
             bps = np.round(len(all_results) / (time.time() - start_time),3)
             print("\rFrame {}, {}/{} boxes queued, {}/{} 3D boxes collected ({} bps), Errors: {}".format(frame_idx,count,len(box_labels),len(all_results),len(box_labels)-removed_boxes,bps,errors),end = '\r', flush = True)  
-
+            
+            # if len(all_results) > 30:
+            #     break
+            
             # get result if any new results are ready
             try:
                 
@@ -317,21 +321,25 @@ def process_boxes(sequence,label_file,downsample = 1,SHOW = True, timeout = 20,t
     
     
 def write_csv_3D(label_file,frame_results,downsample = 1):
+    camera = label_file.split("/")[-1].split("_")[0]
     # load csv file annotations into list
     output_rows = []
     with open(label_file,"r") as f:
         read = csv.reader(f)
         HEADERS = True
         for row in read:
-            
-            
             if HEADERS:
                 if len(row) > 0 and row[0][0:5] == "Frame":
                     HEADERS = False # all header lines have been read at this point
                     new_labels = ["fbrx","fbry","fblx","fbly","bbrx","bbry","bblx","bbly","ftrx","ftry","ftlx","ftly","btrx","btry","btlx","btly"]
-                    row = row + new_labels
+                    more_new_labels = ["frx","fry","flx","fly","brx","bry","blx","bly","direction","camera","acceleration","speed","x","y","theta","width","length"]
+                    row = row[0:11] + new_labels + more_new_labels
+                    
+                else: # only plot last row of headers for now
+                    continue
         
             else:
+                row = row[0:11] 
                 # see if there is a 3D bbox associated with that object and frame
                 obj_idx = int(row[2])
                 frame_idx = int(row[0])
@@ -341,13 +349,18 @@ def write_csv_3D(label_file,frame_results,downsample = 1):
                         if oidx == obj_idx:
                             if len(box) == 8:
                                 flat_box = [coord*downsample for point in box for coord in point]
-                                row = row + flat_box
+                                row = row + flat_box + ["" for i in range(17)] # pad with spaces for values
                             else:
-                                row = row + [None for i in range(16)]
+                                row = row + ["" for i in range(33)]
+                            
                 else:
-                     row = row + [None for i in range(16)]
-                    
+                     row = row + ["" for i in range(33)]
+                
+                missing = 44 - len(row)
+                row = row + ["" for i in range(missing)]
+                row[36] =  camera   
             output_rows.append(row)
+                
     
     # write final output file
     outfile = label_file.split("/track_2d_unique")[0] + "/automatic_3d/" +  label_file.split("/")[-1].split(".csv")[0] + "_3D.csv"
