@@ -63,7 +63,9 @@ This repository contains code for manually correcting 2D object tracking data to
 - `util/`   - contains various utilities for object tracking
 - `requirements.txt` - pip-style spec for python environment
 - `environment.yml` - conda-style spec for python environment
-- 
+
+Ok Ok I know I'm not perfect, there are tons of other files not mentioned included in this repo. I'll get to updating the readme later, hopefully within the week.
+
 ## Requirements
 - Python 3 ( Python 3.6 or later is best)
 - pip or anaconda
