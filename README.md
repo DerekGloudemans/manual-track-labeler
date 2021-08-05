@@ -1,3 +1,52 @@
+# Hear ye Hear ye
+If it shall be unto you to use this repository, know ye this: the following column format must be used for all .csv files or code will cease to work. You break it, you buy it! All unused columns should be left blank.
+
+0. Frame # (0-indexed)
+1. 	Timestamp	
+2. 	Obj ID (unique integer per object)
+3. 	Object class
+4. 	2D bbox xmin	
+5. 	2D bbox ymin
+6. 	2D bbox xmax
+7. 	2D bbox ymax	
+8. 	2D vel_x	
+9. 	2D vel_y	
+10. Generation method
+11. fbrx	 (3D bbox corners in image coordinates)
+12. fbry	
+13. fblx	
+14. fbly	
+15. bbrx	
+16. bbry	
+17. bblx	
+18. bbly	
+19. ftrx	
+20. ftry	
+21. ftlx	
+22. ftly	
+23. btrx	
+24. btry	
+25. btlx	
+26. btly	
+27. fbr_x (in LMCS)	
+28. fbr_y	
+29. fbl_x	
+30. fbl_y	
+31. bbr_x	
+32. bbr_y	
+33. bbl_x	
+34. bbl_y	
+35. direction (-1 if inbound / WB, 1 if outbound / EB)
+36. camera from which detection originated
+37. acceleration	
+38. speed	
+39. x	
+40. y	
+41. theta	
+42. width	
+43. length	
+
+
 # manual-track-labeler
 This repository contains code for manually correcting 2D object tracking data to create "perfect" datasets for training and validation. It also contains code for associating instances of the same object across multiple cameras, videos or fields of view. Additional code is included for generating initial 2D object tracking outputs using *Localization-based Tracking* (LBT).
 
