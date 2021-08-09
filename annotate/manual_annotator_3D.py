@@ -13,7 +13,7 @@ from vp_utils import find_vanishing_point
 
 class Annotator_3D():
     
-    def __init__(self,sequence,label_file, transform_point_file,vp_file, ds = 2,load_corrected = False):
+    def __init__(self,sequence,label_file, transform_point_file,vp_file, ds = 1,load_corrected = False):
         """
         sequence - path to video file
         """
@@ -114,16 +114,19 @@ class Annotator_3D():
                     continue
                 
                 frame_idx = int(row[0])
-                camera = row[28]
+                camera = row[36]
                 if camera != self.camera_name:
+                    continue
+                if len(row[39]) == 0: # bad data row
+                    print("bad data row")
                     continue
                 
                 # add image space box points
-                x_center = float(row[23]) * 3.281
-                y_center = float(row[24]) * 3.281
-                theta = float(row[25])
-                width = float(row[26])    * 3.281
-                length = float(row[27])   * 3.281
+                x_center = float(row[39]) * 3.281
+                y_center = float(row[40]) * 3.281
+                theta = float(row[41])
+                width = float(row[42])    * 3.281
+                length = float(row[43])   * 3.281
                 
                 fx = x_center + length * np.cos(theta) 
                 ly = y_center + width/2 * np.cos(theta)
@@ -143,12 +146,12 @@ class Annotator_3D():
                 if obj_id not in self.known_classes.keys():
                     self.known_classes[obj_id] = row[3]
                 
-                if obj_id in self.known_heights.keys():
+                if obj_id in self.known_heights.keys() and self.known_heights[obj_id] < 200:
                     est_height = self.known_heights[obj_id]
                 else:
                     # estimate height
                     try:
-                        old_im_pts = np.array(row[4:20]).astype(float)
+                        old_im_pts = np.array(row[11:27]).astype(float)
                         est_height = (np.sum(old_im_pts[[1,3,5,7]]) - np.sum(old_im_pts[[9,11,13,15]]))/4.0
                         self.known_heights[obj_id] = est_height
                     except:
@@ -158,7 +161,7 @@ class Annotator_3D():
                 im_top[:,1] -= est_height/2.0
                 
                 im_bbox = list(im_footprint.reshape(-1)) + list(im_top.reshape(-1)) 
-                row[4:20] = im_bbox
+                row[11:27] = im_bbox
                 
                 # verify that object is within frame
                 xmax = max(im_bbox[::2])
@@ -216,27 +219,27 @@ class Annotator_3D():
             cls = box[3]
             if cls == "":
                 cls = self.known_classes[oidx]
-            bbox = np.array(box[4:20]).astype(float).astype(int) 
+            bbox = np.array(box[11:27]).astype(float).astype(int) 
             color = self.colors[oidx%100000]
+            ts = 2
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[2],bbox[3]),color,ts)
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[2],bbox[3]),(0,255,0),2)
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[4],bbox[5]),color,ts)
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[4],bbox[5]),(255,0,0),2)
             
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[2],bbox[3]),color,1)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[2],bbox[3]),color,2)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[4],bbox[5]),color,1)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[4],bbox[5]),color,2)
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[8],bbox[9]),color,ts)
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[2],bbox[3]),(bbox[10],bbox[11]),color,ts)
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[4],bbox[5]),(bbox[12],bbox[13]),color,ts)
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[14],bbox[15]),(0,0,255),2)
             
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[8],bbox[9]),color,1)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[2],bbox[3]),(bbox[10],bbox[11]),color,1)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[4],bbox[5]),(bbox[12],bbox[13]),color,1)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[14],bbox[15]),color,2)
-            
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[10],bbox[11]),(bbox[8],bbox[9]),color,1)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[12],bbox[13]),(bbox[8],bbox[9]),color,1)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[14],bbox[15]),(bbox[12],bbox[13]),color,1)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[10],bbox[11]),(bbox[14],bbox[15]),color,1)
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[10],bbox[11]),(bbox[8],bbox[9]),color,ts)
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[12],bbox[13]),(bbox[8],bbox[9]),color,ts)
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[14],bbox[15]),(bbox[12],bbox[13]),color,ts)
+            self.cur_frame = cv2.line(self.cur_frame,(bbox[10],bbox[11]),(bbox[14],bbox[15]),color,ts)
             
             # x across back of vehicle            
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[12],bbox[13]),color,1)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[4],bbox[5]),(bbox[14],bbox[15]),color,1)
+            # self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[12],bbox[13]),color,ts)
+            # self.cur_frame = cv2.line(self.cur_frame,(bbox[4],bbox[5]),(bbox[14],bbox[15]),color,ts)
 
             
             minx = np.min(bbox[::2])
@@ -327,15 +330,15 @@ class Annotator_3D():
         size = 100
         newbox = np.array([bbox[0],bbox[1],bbox[0] + size,bbox[1],bbox[0],bbox[1] + size, bbox[0]+size,bbox[1] + size])
         newbox2 = newbox + size/2.0
-        new_row = [self.frame_num,"",obj_idx,cls] + list(newbox2) + list(newbox)
-        print(new_row)
+        new_row = [self.frame_num,timestamp,obj_idx,cls] + ["","","","","","",""] + list(newbox2) + list(newbox) + ["" for tmp in range(9)] + [self.camera_name] + ["" for tmp in range(7)]
+        print(len(new_row),new_row)
         try:
             self.labels[self.frame_num].append(new_row)
         except:
             self.labels[self.frame_num] = [new_row]
         
         print("Added box for object {} to frame {}".format(obj_idx,self.frame_num))
-        
+        print(new_row)
         self.realign(obj_idx,self.frame_num)
         #self.next() # for convenience
         
@@ -346,7 +349,7 @@ class Annotator_3D():
         
         for row in self.labels[self.frame_num]:
             if int(row[2]) == obj_idx:
-                bbox = np.array(row[4:20]).astype(float)
+                bbox = np.array(row[11:27]).astype(float)
                 
                 bbox[0] += x_move
                 bbox[2] += x_move
@@ -364,7 +367,7 @@ class Annotator_3D():
                 bbox[11] += y_move
                 bbox[13] += y_move
                 bbox[15] += y_move
-                row[4:20]  = bbox.astype(int)
+                row[11:27]  = bbox.astype(int)
                 break
     
     
@@ -404,7 +407,7 @@ class Annotator_3D():
         
         for row in self.labels[target_frame_num]:
             if int(row[2]) == obj_idx:
-                bbox = np.array(row[4:20]).astype(float)
+                bbox = np.array(row[11:27]).astype(float)
                 
                 # 1. - realign bbr
                 # express bbr as a vector from fbr (mag,dir)
@@ -499,7 +502,7 @@ class Annotator_3D():
                 bbox[11] = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-x4*y3))/D
                 
                 
-                row[4:20] = bbox.astype(int)
+                row[11:27] = bbox.astype(int)
                 break
             
             print("Realigned object {} in frame {}".format(obj_idx,target_frame_num))
@@ -519,7 +522,7 @@ class Annotator_3D():
         
         for row in self.labels[self.frame_num]:
             if int(row[2]) == obj_idx:
-                bbox = row[4:20]
+                bbox = row[11:27]
                 
                 # determine whether start point was closer to one side or the other of the box based on active dim
                 if self.active_vp == 0:
@@ -538,7 +541,6 @@ class Annotator_3D():
                     
                     perp_comp = ((disp[2]-disp[0]) * lx + (disp[3] - disp[1])*ly)/(disp_length*length)
                     disp_length *= perp_comp
-                    print(perp_comp)
                     
                     
                     if d1 < d2:
@@ -569,7 +571,7 @@ class Annotator_3D():
                         bbox[13] = bbox[9] + ly 
                         bbox[15] = bbox[11] + ly 
 
-                    row[4:20] = bbox
+                    row[11:27] = bbox
 
                 
                 elif self.active_vp == 1:
@@ -590,7 +592,6 @@ class Annotator_3D():
                     
                     perp_comp = ((disp[2]-disp[0]) * lx + (disp[3] - disp[1])*ly)/(disp_length*length)
                     disp_length *= perp_comp
-                    print(lx,ly,disp_length, perp_comp)
                     
                     
                     if d1 < d2:
@@ -621,7 +622,7 @@ class Annotator_3D():
                         bbox[11] = bbox[9] + ly 
                         bbox[15] = bbox[13] + ly 
                         
-                    row[4:20] = bbox
+                    row[11:27] = bbox
                     
                 elif self.active_vp == 2:
                     
@@ -641,7 +642,6 @@ class Annotator_3D():
                     
                     perp_comp = ((disp[2]-disp[0]) * lx + (disp[3] - disp[1])*ly)/(disp_length*length)
                     disp_length *= perp_comp
-                    print(lx,ly,disp_length, perp_comp)
                     
                     
                     if d1 < d2:
@@ -672,7 +672,7 @@ class Annotator_3D():
                         bbox[13] = bbox[5] + ly 
                         bbox[15] = bbox[7] + ly 
                         
-                    row[4:20] = bbox    
+                    row[11:27] = bbox
         
                 break
          
@@ -709,7 +709,7 @@ class Annotator_3D():
                     if int(row[2]) == obj_idx: # see if obj_idx is in this frame
                         # if we have prev_box, interpolate all boxes between
                         if prev_frame != -1:
-                            box = np.array(row[4:20]).astype(float)
+                            box = np.array(row[11:27]).astype(float)
                             for f_idx in range(prev_frame + 1, frame):   # for each frame between:
                                 p1 = float(frame - f_idx) / float(frame - prev_frame)
                                 p2 = 1.0 - p1
@@ -724,7 +724,7 @@ class Annotator_3D():
                         
                         # lastly, update prev_frame
                         prev_frame = frame
-                        prev_box = np.array(row[4:20]).astype(float)
+                        prev_box = np.array(row[11:27]).astype(float)
                         cls = row[3]
                         continue
                     
@@ -741,7 +741,7 @@ class Annotator_3D():
         #print(point)
 
         for row in self.labels[self.frame_num]:
-            bbox = np.array(row[4:20]).astype(float).astype(int)
+            bbox = np.array(row[11:27]).astype(float).astype(int)
             minx = np.min(bbox[::2])
             maxx = np.max(bbox[::2])
             miny = np.min(bbox[1::2])
@@ -944,7 +944,7 @@ class Annotator_3D():
                 self.new = None     
            
                
-           self.cur_frame = cv2.resize(self.cur_frame,(1920,1080))
+           #self.cur_frame = cv2.resize(self.cur_frame,(1920,1080))
            cv2.imshow("window", self.cur_frame)
            title = "Frame {}/{} --- Active Command: {} --- VP {} ".format(self.frame_num,self.length,self.active_command,self.active_vp)
            cv2.setWindowTitle("window",str(title))
@@ -1000,11 +1000,13 @@ if __name__ == "__main__":
        
         
     # except:
-    camera_id = "p1c5"
-    label_file = "/home/worklab/Data/dataset_alpha_pretrials/rectified_reduced_dummy.csv"
-    video      = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/{}_00000.mp4".format(camera_id)
-    # vp_file    = "/home/worklab/Documents/derek/2D-to-3D-cars/config/{}_axes.csv".format(camera_id)
-    # tf_file    = "/home/worklab/Documents/derek/i24-roadway-transforms/tform/{}_im_lmcs_transform_points.csv".format(camera_id)
+    camera_id = "p1c1"
+    sequence_idx = 1
     
-    ann = Annotator_3D(video,label_file,tf_file,vp_file, load_corrected =True)
+    label_file = "/home/worklab/Data/dataset_alpha/rectified/rectified_{}_{}.csv".format(camera_id,sequence_idx)
+    video      = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/{}_{}.mp4".format(camera_id,sequence_idx)
+    vp_file    = "/home/worklab/Data/dataset_alpha/vp/{}_axes.csv".format(camera_id)
+    tf_file    = "/home/worklab/Data/dataset_alpha/tform/{}_im_lmcs_transform_points.csv".format(camera_id)
+    
+    ann = Annotator_3D(video,label_file,tf_file,vp_file, load_corrected =False)
     ann.run()

@@ -77,7 +77,7 @@ def plot_vehicle_csv(
             
             keep.append(row)
     pts = np.stack([[float(item) for item in row] for row in keep])
-    im_pts = pts[:,:2] * 2.0
+    im_pts = pts[:,:2] # * 2.0
     lmcs_pts = pts[:,2:]
     H,_ = cv2.findHomography(lmcs_pts,im_pts)
     
@@ -379,14 +379,14 @@ if __name__ == "__main__":
          print("No path specified, using default paths and settings instead")
          show_2d = False
          show_3d = True
-         show_LMCS = False
-         show_rectified = True
+         show_LMCS = True
+         show_rectified = False
          save = False
          frame_rate = 10
-         ds = True
+         ds = False
         
-         csv_file = "/home/worklab/Data/dataset_alpha_pretrials/rectified_all_img_re_rearranged.csv"
-         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/p1c5_00000.mp4"
+         csv_file = "/home/worklab/Data/dataset_alpha/automatic_3d/rectified/rectified_p3c4_0_track_outputs_3D.csv"
+         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p3c4_0.mp4"
          #csv_file = "/home/worklab/Data/dataset_alpha/trial/p1c1_2_track_outputs_3D.csv"
          #sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c1_2.mp4"
     
