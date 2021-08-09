@@ -67,5 +67,5 @@ def expand_labels(directory):
     
     
 if __name__ == "__main__":
-    directory = "/home/worklab/Data/dataset_alpha/track_2d_unique"
+    directory = "/home/worklab/Data/dataset_alpha/track_2d_unique2"
     expand_labels(directory)

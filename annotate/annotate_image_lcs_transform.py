@@ -376,8 +376,8 @@ class Transform_Labeler():
                self.load()
                       
 
-tfl  = Transform_Labeler("/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p1c6_00000.mp4",ds = 2)
-tfl = Transform_Labeler("/home/worklab/Data/cv/video/ground_truth_video_06162021/record_47_p1c6_00000.mp4",ds = 2)
+#tfl  = Transform_Labeler("/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c4_00000.mp4",ds = 2)
+tfl = Transform_Labeler("/home/worklab/Data/cv/video/ground_truth_video_06162021/record_47_p2c6_00000.mp4",ds = 2)
 tfl.run()
 
 '''

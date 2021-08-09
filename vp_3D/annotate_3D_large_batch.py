@@ -597,7 +597,7 @@ if __name__ == "__main__":
         sequences.reverse()
         for sequence in sequences:
             vid_sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/{}".format(sequence)
-            labels = "/home/worklab/Data/dataset_alpha/track_2d_unique/{}_track_outputs.csv".format(sequence.split(".")[0])
+            labels = "/home/worklab/Data/dataset_alpha/track_2d_unique2/{}_track_outputs.csv".format(sequence.split(".")[0])
             labels_3D = "/home/worklab/Data/dataset_alpha/automatic_3d/{}_track_outputs_3D.csv".format(sequence.split(".")[0])
             
             # if "c1" in sequence or "c6" in sequence:
