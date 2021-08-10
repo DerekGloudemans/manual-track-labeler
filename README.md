@@ -1,4 +1,4 @@
-# Hear ye Hear ye  
+# Hear ye Hear ye (labelers skip to next section please)
 If it shall be unto you to use this repository, know ye this: the following column format must be used for all .csv files or code will cease to work. You break it, you buy it! All unused columns should be left blank.
 
 0. Frame # (0-indexed)
@@ -48,10 +48,11 @@ If it shall be unto you to use this repository, know ye this: the following colu
 
 
 # manual-track-labeler
-This repository contains code for manually correcting 2D object tracking data to create "perfect" datasets for training and validation. It also contains code for associating instances of the same object across multiple cameras, videos or fields of view. Additional code is included for generating initial 2D object tracking outputs using *Localization-based Tracking* (LBT).
+This repository contains code for manually correcting 3D object tracking data to create "perfect" datasets for training and validation. It also contains code for associating instances of the same object across multiple cameras, videos or fields of view. Additional code is included for generating initial 2D object tracking outputs using *Localization-based Tracking* (LBT).
 
 ## Included files
-- **`manual_annotator_2D.py`** -  for correcting 2D object tracking dat
+- `manual_annotator_2D.py` -  for correcting 2D object tracking data
+- **`manual_annotator_3D.py`** -  for correcting 3D object tracking data
 - **`manual_annotator_associator.py`** -  for associating objects across sequences
 - `_data/` -directory where all data is stored
 - `train_detector.py` -for training object detector for LBT
@@ -100,27 +101,32 @@ conda activate mtl-env
 ```
 
 # Usage
-First, copy or move all files you'd like to correct to `_data/track/`
+First, copy or move all files you'd like to correct to `DATA/video/` and `DATA/labels/`. Be sure to "check the files out" on the [drive link](https://docs.google.com/spreadsheets/d/1BQwHaPUAT2V6C-czkjbrOMlsg5bcyRzcz5L_1_Blavk/edit?usp=sharing) so that no one else edits the same files at the same time.
 
 ```
-python manual_annotator_2D.py <sequence name>
+cd annotate
+python manual_annotator_3D.py <camera_name> <sequence_idx>
 ```
 
-where `<sequence name>` is video identifier (e.g. p1c1_00001). The resulting corrected track file will be written to `_output/track_corrected/`.
+where `<camera_name>` is p1c1 or similar, and `<sequence_idx>` is an integer between 0 and 3 indicating the integer in the desired video file name.
 
-## 2D Annotation Controls
+## 3D Annotation Controls
  - `9` - advance to next frame
 - `8` - return to previous frame. Note that only 200 frames are kept in buffer so attempting to move backwards more than 200 frames will cause an error
 - `u` - undo the last labeling change made
-- `r` - enter REASSIGN mode - in this mode, if you click on an object, enter an ID number, and press enter, the object will be assigned the new ID number in this and all subsequent frames
-- `d` - enter DELETE mode - in this mode, if you click on an object, the object is deleted in this and all subsequent frames
-- `a` - enter ADD mode - in this mode, if you click and drag to draw a rectangular bounding box, enter an ID number, and press enter, a new box is created and assigned to the relevant object. You can press enter to use the most recent ID number again, if adding multiple boxes for the same object in multiple frames. Note that if no other boxes exist for this object, you must also enter an object class and then press enter again. Lastly, after a box is added, the frame is automatically advanced. You can return to the previous frame to inspect the drawn box.
-- `w` - enter REDRAW mode - in this mode, if you click and drag to draw a box overlapping with an existing box, the new box will replace the old box, useful for correcting slightly innaccurate boxes
+- `r` - enter REASSIGN mode - in this mode, if you click on an object, enter an ID number, and press enter, the object will be assigned the new ID number in this and all subsequent frames. This is used when two object IDs correspond to the same object at different points in time
+- `d` - enter DELETE mode - in this mode, if you click on an object and press enter, the object is deleted in this and all subsequent frames. Alternatively, you can click an object and enter a number, then press enter, to delete the object in that number of subsequent frames. 
+- `a` - enter ADD mode - in this mode, if you click on an object, enter an ID number, and press enter, a new box is created and assigned to the relevant object. You can press enter to use the most recent ID number again, Note that if no other boxes exist for this object, you must also enter an object class and then press enter again. You will have to manually adjust the box until it fits the object.
+- `w` - enter REDRAW mode - in this mode, you can click on a side of the box and drag it to change the box's dimensions. Note that at a given time, you can only drag the box along one of the 3 principal axes. You can toggle which axis is active by pressing `1`.
 - `s` - pressing `s` followed by a frame number and enter will skip to that frame.Note that you will not be able to move backwards to previous frames after skipping because the previous frames will not have been buffered. Useful for skipping to where you left off on a previous labeling run.
 - `f` - fast forward through frames. At any time, you can press enter or f to stop fast-forwarding.
 - `q` - save and quit
-- `i` - pressing `i` followed by an object ID number and enter will interpolate all missing bounding boxes for that object between the first and last frames in which it is detected. When adding boxes for an object, you can generally add a box every 5-10 frames and then interpolate the boxes between these.
-![](readme_ims/2d_example.png)
+- `i` - pressing `i` followed by an object ID number and enter will interpolate all missing bounding boxes for that object between the first and last frames in which it is detected. When adding boxes for an object, you can generally add a box every 5 frames and then interpolate the boxes between these.
+- `m` - enter MOVE mode - in this mode, you can click within an object bounding box and drag to shift the whole object by that offset.
+- right click twice within a box - realigns the object edges with the vanishing points, should be done after significantly moving or modifying a box.
+- `k` - enter KEYFRAME mode - whenever you enter keyframe mode, you select an easily recognizable point on an object. Then, you subsequently select that point on the same object in different frames, and the box from the first frame is offset in the current frame according to the selected point. This is useful because you can fit one 3D box to an object well, and then copy and shift it to several subsequent frames before having to redraw it.
+ 
+# Ignore the rest, it is not relevant at this time!
 
 ## Cross-sequence Association Controls
 - `1`- move to previous frame in left sequence
@@ -131,8 +137,6 @@ where `<sequence name>` is video identifier (e.g. p1c1_00001). The resulting cor
 - Click on an object in either sequence, type a class name, and press enter to reassign the new class to that object ID across all frames in both sequences
 - `u` - undo the last labeling change
 - `q` - save and quit
-
-![](readme_ims/ReID_example.png)
 
 
 ## Labeling guidelines
