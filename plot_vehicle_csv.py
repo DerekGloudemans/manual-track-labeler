@@ -385,8 +385,8 @@ if __name__ == "__main__":
          frame_rate = 10
          ds = False
         
-         csv_file = "/home/worklab/Data/dataset_alpha/automatic_3d/rectified/rectified_p3c4_0_track_outputs_3D.csv"
-         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p3c4_0.mp4"
+         csv_file = "/home/worklab/Data/dataset_alpha/automatic_3d/rectified/rectified_p1c1_0_track_outputs_3D.csv"
+         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c1_0.mp4"
          #csv_file = "/home/worklab/Data/dataset_alpha/trial/p1c1_2_track_outputs_3D.csv"
          #sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c1_2.mp4"
     

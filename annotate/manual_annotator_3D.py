@@ -50,6 +50,7 @@ class Annotator_3D():
         self.length = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         
         self.start_point = None # used to store click temporarily
+        self.keyframe_point = None
         self.clicked = False 
         self.new = None # used to store a new box to be plotted temporarily
         self.cont = True
@@ -118,7 +119,7 @@ class Annotator_3D():
                 if camera != self.camera_name:
                     continue
                 if len(row[39]) == 0: # bad data row
-                    print("bad data row")
+                    #print("bad data row")
                     continue
                 
                 # add image space box points
@@ -158,7 +159,7 @@ class Annotator_3D():
                         est_height = 1
                         
                 im_top = im_footprint.copy()
-                im_top[:,1] -= est_height/2.0
+                im_top[:,1] -= est_height
                 
                 im_bbox = list(im_footprint.reshape(-1)) + list(im_top.reshape(-1)) 
                 row[11:27] = im_bbox
@@ -735,7 +736,36 @@ class Annotator_3D():
         print("Added interpolated boxes for object {}".format(obj_idx))
         self.plot()
             
+    def keyframe(self,obj_idx,point):
+        if self.keyframe_point is None:
+            
+            for row in self.labels[self.frame_num]:
+                    if int(row[2]) == obj_idx: # see if obj_idx is in this frame            
+                        self.keyframe_point = [obj_idx,point[0:2],row[11:27]] # store obj_idx, base point, and base box
+                        print("Assigned keframe base point for obj {}".format(obj_idx))
+                        break
+        
+        else:
+            # calculate offset between point and base point
+            x_off = point[0] - self.keyframe_point[1][0]
+            y_off = point[1] - self.keyframe_point[1][1]
+            
+            obj_idx = self.keyframe_point[0]
+            
+            offset_box = self.keyframe_point[2].copy()
+            offset_box[::2]  += x_off
+            offset_box[1::2] += y_off
+            
+            for row in self.labels[self.frame_num]:
+                if int(row[2]) == obj_idx: # see if obj_idx is in this frame   
+                    row[11:27] = offset_box
+                    print("Used keyframe offset for obj {}".format(obj_idx))
+                    break
+            
+            self.realign(obj_idx, self.frame_num)
+            self.plot()
 
+        
     def find_box(self,point):
         #point = point *2
         #print(point)
@@ -936,6 +966,11 @@ class Annotator_3D():
                     #self.new *= 2
                     self.realign(obj_idx,self.frame_num)
                     
+                elif self.active_command == "KEYFRAME":
+                    obj_idx = self.find_box(self.new)
+                    #self.new *= 2
+                    self.keyframe(obj_idx,self.new)
+                    
                 self.label_buffer.append(copy.deepcopy(self.labels))
                 if len(self.label_buffer) > 50:
                     self.label_buffer = self.label_buffer[1:]
@@ -967,6 +1002,9 @@ class Annotator_3D():
                 self.active_command = "REALIGN"
            elif key == ord("m"):
                 self.active_command = "MOVE"
+           elif key == ord("k"):
+               self.keyframe_box = None
+               self.active_command = "KEYFRAME"
                 
            elif key == ord("s"):
                     frame_idx = int(self.keyboard_input())
@@ -982,7 +1020,7 @@ class Annotator_3D():
                self.scan()
            elif key == ord("1"):
                self.active_vp = (self.active_vp +1)%3
-        
+           
         
         
 if __name__ == "__main__":
@@ -1000,8 +1038,8 @@ if __name__ == "__main__":
        
         
     # except:
-    camera_id = "p1c1"
-    sequence_idx = 1
+    camera_id = "p1c2"
+    sequence_idx = 0
     
     label_file = "/home/worklab/Data/dataset_alpha/rectified/rectified_{}_{}.csv".format(camera_id,sequence_idx)
     video      = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/{}_{}.mp4".format(camera_id,sequence_idx)
