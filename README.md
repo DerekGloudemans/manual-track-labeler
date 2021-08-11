@@ -1,50 +1,4 @@
-# Hear ye Hear ye (labelers skip to next section please)
-If it shall be unto you to use this repository, know ye this: the following column format must be used for all .csv files or code will cease to work. You break it, you buy it! All unused columns should be left blank.
 
-0. Frame # (0-indexed)
-1. 	Timestamp	
-2. 	Obj ID (unique integer per object)
-3. 	Object class
-4. 	2D bbox xmin	
-5. 	2D bbox ymin
-6. 	2D bbox xmax
-7. 	2D bbox ymax	
-8. 	2D vel_x	
-9. 	2D vel_y	
-10. Generation method
-11. fbrx	 (3D bbox corners in image coordinates)
-12. fbry	
-13. fblx	
-14. fbly	
-15. bbrx	
-16. bbry	
-17. bblx	
-18. bbly	
-19. ftrx	
-20. ftry	
-21. ftlx	
-22. ftly	
-23. btrx	
-24. btry	
-25. btlx	
-26. btly	
-27. fbr_x (in LMCS)	
-28. fbr_y	
-29. fbl_x	
-30. fbl_y	
-31. bbr_x	
-32. bbr_y	
-33. bbl_x	
-34. bbl_y	
-35. direction (-1 if inbound / WB, 1 if outbound / EB)
-36. camera from which detection originated
-37. acceleration	
-38. speed	
-39. x	
-40. y	
-41. theta	
-42. width	
-43. length	
 
 
 # manual-track-labeler
@@ -127,6 +81,55 @@ where `<camera_name>` is p1c1 or similar, and `<sequence_idx>` is an integer bet
 - `k` - enter KEYFRAME mode - whenever you enter keyframe mode, you select an easily recognizable point on an object. Then, you subsequently select that point on the same object in different frames, and the box from the first frame is offset in the current frame according to the selected point. This is useful because you can fit one 3D box to an object well, and then copy and shift it to several subsequent frames before having to redraw it.
  
 # Ignore the rest, it is not relevant at this time!
+
+# Hear ye Hear ye (labelers skip to next section please)
+If it shall be unto you to use this repository, know ye this: the following column format must be used for all .csv files or code will cease to work. You break it, you buy it! All unused columns should be left blank.
+
+0. Frame # (0-indexed)
+1. 	Timestamp	
+2. 	Obj ID (unique integer per object)
+3. 	Object class
+4. 	2D bbox xmin	
+5. 	2D bbox ymin
+6. 	2D bbox xmax
+7. 	2D bbox ymax	
+8. 	2D vel_x	
+9. 	2D vel_y	
+10. Generation method
+11. fbrx	 (3D bbox corners in image coordinates)
+12. fbry	
+13. fblx	
+14. fbly	
+15. bbrx	
+16. bbry	
+17. bblx	
+18. bbly	
+19. ftrx	
+20. ftry	
+21. ftlx	
+22. ftly	
+23. btrx	
+24. btry	
+25. btlx	
+26. btly	
+27. fbr_x (in LMCS)	
+28. fbr_y	
+29. fbl_x	
+30. fbl_y	
+31. bbr_x	
+32. bbr_y	
+33. bbl_x	
+34. bbl_y	
+35. direction (-1 if inbound / WB, 1 if outbound / EB)
+36. camera from which detection originated
+37. acceleration	
+38. speed	
+39. x	
+40. y	
+41. theta	
+42. width	
+43. length	
+
 
 ## Cross-sequence Association Controls
 - `1`- move to previous frame in left sequence
