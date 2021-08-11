@@ -51,6 +51,12 @@ python manual_annotator_3D.py <camera_name> <sequence_idx>
 
 where `<camera_name>` is p1c1 or similar, and `<sequence_idx>` is an integer between 0 and 3 indicating the integer in the desired video file name.
 
+## Labeling guidelines
+- Every vehicle fully within the frame needs a box. Edge cameras (c1 and c6) vehicles only need boxes if they're less than halfway along the road towards the vanishing points (i.e. only the closer vehicles).
+- Boxes should be tight around the object (i.e. if the vehicle were in a tight cardboard box what would that box look like. Aim for as accurate as possible but don't spend too much time getting every box perfect.
+- Delete boxes that don't contain an object.
+- When necessary, reassign object IDs so that each vehicle has a single object ID through the scene
+
 ## 3D Annotation Controls
  - `9` - advance to next frame
 - `8` - return to previous frame. Note that only 200 frames are kept in buffer so attempting to move backwards more than 200 frames will cause an error
