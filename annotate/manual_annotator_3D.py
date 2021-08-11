@@ -190,7 +190,7 @@ class Annotator_3D():
                 
                 
         self.labels = frame_labels
-        self.label_buffer = [copy.deepcopy(frame_labels)]
+        self.label_buffer = [[self.frame_num,copy.deepcopy(frame_labels[self.frame_num])]]
     
         self.plot()
         
@@ -342,14 +342,12 @@ class Annotator_3D():
         newbox = np.array([bbox[0],bbox[1],bbox[0] + size,bbox[1],bbox[0],bbox[1] + size, bbox[0]+size,bbox[1] + size])
         newbox2 = newbox + size/2.0
         new_row = [self.frame_num,timestamp,obj_idx,cls] + ["","","","","","",""] + list(newbox2) + list(newbox) + ["" for tmp in range(9)] + [self.camera_name] + ["" for tmp in range(7)]
-        print(len(new_row),new_row)
         try:
             self.labels[self.frame_num].append(new_row)
         except:
             self.labels[self.frame_num] = [new_row]
         
         print("Added box for object {} to frame {}".format(obj_idx,self.frame_num))
-        print(new_row)
         self.realign(obj_idx,self.frame_num)
         #self.next() # for convenience
         
@@ -713,12 +711,15 @@ class Annotator_3D():
         """
         if len(self.label_buffer) > 1:
             
-            self.labels = self.label_buffer[-2].copy()
-            self.label_buffer = self.label_buffer[:-1]
+            prev = self.label_buffer[-2].copy()
+            if prev[0] == self.frame_num:
+                self.labels[self.frame_num] = prev[1]
+                self.label_buffer = self.label_buffer[:-1]
+                print("Undid last operation")
+                self.plot()
+            else:
+                print("Cannot undo last operation because you advanced frames")
             
-            self.plot()
-            print("Undid last operation")
-        
         else:
             print("Can't undo the last operation")
        
@@ -821,7 +822,6 @@ class Annotator_3D():
             maxy = np.max(bbox[1::2])
              # since we downsample image before plotting
             
-            print(bbox)
             if point[0] > minx and point[0] < maxx and point[1] > miny and point[1] < maxy:
                 obj_idx = int(row[2])
                 return obj_idx
@@ -857,6 +857,8 @@ class Annotator_3D():
                 self.frame_num += 1
                 self.plot()
             
+            self.label_buffer = [[self.frame_num,copy.deepcopy(self.labels[self.frame_num])]]
+
             
         else:
             print("On last frame, cannot advance to next frame")    
@@ -865,7 +867,6 @@ class Annotator_3D():
          while self.frame_num < frame_idx:
              ret = self.cap.grab()
              self.frame_num += 1
-             print(self.frame_num)
              
          ret,frame = self.cap.retrieve()
          if self.ds != 1:
@@ -885,6 +886,9 @@ class Annotator_3D():
             self.frame_num -= 1
             
             self.plot()
+            
+            self.label_buffer = [[self.frame_num,copy.deepcopy(self.labels[self.frame_num])]]
+
             
         else:
             print("On first frame, cannot return to previous frame")
@@ -1013,9 +1017,9 @@ class Annotator_3D():
                     #self.new *= 2
                     self.keyframe(obj_idx,self.new)
                   
-                # self.label_buffer.append(copy.deepcopy(self.labels))
-                # if len(self.label_buffer) > 50:
-                #     self.label_buffer = self.label_buffer[1:]
+                self.label_buffer.append([self.frame_num,copy.deepcopy(self.labels[self.frame_num])])
+                if len(self.label_buffer) > 50:
+                    self.label_buffer = self.label_buffer[1:]
                     
                 self.plot()
                 self.new = None     
