@@ -5,7 +5,7 @@
 This repository contains code for manually correcting 3D object tracking data to create "perfect" datasets for training and validation. It also contains code for associating instances of the same object across multiple cameras, videos or fields of view. Additional code is included for generating initial 2D object tracking outputs using *Localization-based Tracking* (LBT).
 
 ## How to use
-If you haven't used the labeler tool before, start with [this video](nowhere). It provides an overview of installation, file management, and the labeling process.
+If you haven't used the labeler tool before, start with [this video](https://github.com/DerekGloudemans/manual-track-labeler/releases/download/v1.1/zoom_0.mp4). It provides an overview of installation, file management, and the labeling process.
 
 ## Requirements
 - Python 3 ( Python 3.6 or later is best)
