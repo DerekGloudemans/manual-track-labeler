@@ -309,10 +309,8 @@ class Annotator_3D():
         for frame in self.labels:
             labels = self.labels[frame]
             for box in labels:
-                if int(box[2]) == obj_idx and float(box[8]) != 0:
+                if int(box[2]) == obj_idx: 
                     cls = box[3]
-                    vel_x = float(box[8])
-                    vel_y = float(box[9])
                     break
             if cls is not None:
                 break
@@ -543,7 +541,7 @@ class Annotator_3D():
         
         for row in self.labels[self.frame_num]:
             if int(row[2]) == obj_idx:
-                bbox = row[11:27]
+                bbox = np.array(row[11:27]).astype(float)
                 
                 # determine whether start point was closer to one side or the other of the box based on active dim
                 if self.active_vp == 0:
@@ -771,7 +769,7 @@ class Annotator_3D():
             
             for row in self.labels[self.frame_num]:
                     if int(row[2]) == obj_idx: # see if obj_idx is in this frame            
-                        self.keyframe_point = [obj_idx,point[0:2],row[11:27]] # store obj_idx, base point, and base box
+                        self.keyframe_point = [obj_idx,point[0:2],np.array(row[11:27]).astype(float)] # store obj_idx, base point, and base box
                         print("Assigned keframe base point for obj {}".format(obj_idx))
                         break
         
@@ -786,14 +784,26 @@ class Annotator_3D():
             offset_box[::2]  += x_off
             offset_box[1::2] += y_off
             
+            # add dummy box if necessary
+            exists = False
             for row in self.labels[self.frame_num]:
+                if int(row[2]) == obj_idx:
+                    exists = True
+                    break
+            if not exists:
+                self.add(obj_idx,point)
+                
+            for r_idx,row in enumerate(self.labels[self.frame_num]):
                 if int(row[2]) == obj_idx: # see if obj_idx is in this frame   
                     row[11:27] = offset_box
                     row[10] = "Manual"
                     row[27:] = ["" for i in range(16)]
                     row[36] = self.camera_name
+                
+                    #self.labels[self.frame_num][r_idx] = row
                     print("Used keyframe offset for obj {}".format(obj_idx))
                     break
+           
             
             self.realign(obj_idx, self.frame_num)
             self.plot()
@@ -1035,7 +1045,7 @@ class Annotator_3D():
            elif key == ord("m"):
                 self.active_command = "MOVE"
            elif key == ord("k"):
-               self.keyframe_box = None
+               self.keyframe_point = None
                self.active_command = "KEYFRAME"
                 
            elif key == ord("s"):
