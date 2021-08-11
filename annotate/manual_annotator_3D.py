@@ -120,6 +120,7 @@ class Annotator_3D():
                 if camera != self.camera_name:
                     continue
                 
+                
                 if row[10] == "Manual":
                     if frame_idx not in frame_labels.keys():
                             frame_labels[frame_idx] = [row]
@@ -743,9 +744,9 @@ class Annotator_3D():
                                 p2 = 1.0 - p1
                                 
                                 newbox = p1 * prev_box + p2 * box
-                                new_row = [f_idx,"",obj_idx,cls,"","","","","","",""] + list(newbox) + ["" for i in range(36)]
+                                new_row = [f_idx,"",obj_idx,cls,"","","","","","",""] + list(newbox) + ["" for i in range(16)]
                                 new_row[10] = "Manual"
-                                new_row[39] = self.camera_name
+                                new_row[36] = self.camera_name
                                 
                                 try:
                                     self.labels[f_idx].append(new_row)
@@ -1084,7 +1085,7 @@ if __name__ == "__main__":
        
         
     except:
-        camera_id = "p1c2"
+        camera_id = "p1c3"
         sequence_idx = 0
         
         
