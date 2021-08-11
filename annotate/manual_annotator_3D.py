@@ -26,7 +26,7 @@ class Annotator_3D():
         self.load_corrected = False
         
         
-        self.outfile = self.label_path.split(".csv")[0] + "_{}_3D_corrected.csv".format(self.sequence_short_name)
+        self.outfile = label_file # self.label_path.split(".csv")[0] + "_corrected.csv"
         
         if load_corrected:
             if os.path.exists(self.outfile):
@@ -948,7 +948,6 @@ class Annotator_3D():
                         self.last_active_obj_idx = obj_idx
                     except:
                         obj_idx = self.last_active_obj_idx
-                   
                     self.reassign(old_obj_idx,obj_idx)
                     
                 elif self.active_command == "REDRAW":
@@ -1025,26 +1024,33 @@ class Annotator_3D():
         
 if __name__ == "__main__":
     
-    # try:
+    try:
 
-    #     parser = argparse.ArgumentParser()
-    #     parser.add_argument("sequence",help = "video ID such as p1c2_00001")
+        parser = argparse.ArgumentParser()
+        parser.add_argument("camera",help = "p1c1 or similar")
+        parser.add_argument("index" ,type = int,help = "int in range 0..3")
 
-    #     args = parser.parse_args()
-    #     sequence = args.sequence
-    #     video = "./_data/track/record_{}.mp4".format(sequence)
-    #     label_dir = "./_data"
+        args = parser.parse_args()
+        sequence_idx = args.index
+        camera_id = args.camera
 
        
         
-    # except:
-    camera_id = "p1c2"
-    sequence_idx = 0
+    except:
+        camera_id = "p1c2"
+        sequence_idx = 0
+        
+        
+        # label_file = "/home/worklab/Data/dataset_alpha/rectified/rectified_{}_{}.csv".format(camera_id,sequence_idx)
+        # video      = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/{}_{}.mp4".format(camera_id,sequence_idx)
+        # vp_file    = "/home/worklab/Data/dataset_alpha/vp/{}_axes.csv".format(camera_id)
+        # tf_file    = "/home/worklab/Data/dataset_alpha/tform/{}_im_lmcs_transform_points.csv".format(camera_id)
     
-    label_file = "/home/worklab/Data/dataset_alpha/rectified/rectified_{}_{}.csv".format(camera_id,sequence_idx)
-    video      = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/{}_{}.mp4".format(camera_id,sequence_idx)
-    vp_file    = "/home/worklab/Data/dataset_alpha/vp/{}_axes.csv".format(camera_id)
-    tf_file    = "/home/worklab/Data/dataset_alpha/tform/{}_im_lmcs_transform_points.csv".format(camera_id)
+    d = os.path.dirname(os.getcwd())
+    label_file = "{}/DATA/labels/rectified_{}_{}_track_outputs_3D.csv".format(d,camera_id,sequence_idx)
+    video      = "{}/DATA/video/{}_{}.mp4".format(d,camera_id,sequence_idx)
+    vp_file    = "{}/DATA/vp/{}_axes.csv".format(d,camera_id)
+    tf_file    = "{}/DATA/tform/{}_im_lmcs_transform_points.csv".format(d,camera_id)
     
-    ann = Annotator_3D(video,label_file,tf_file,vp_file, load_corrected =False)
+    ann = Annotator_3D(video,label_file,tf_file,vp_file, load_corrected = True)
     ann.run()
