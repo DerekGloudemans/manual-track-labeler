@@ -41,6 +41,7 @@ conda activate mtl-env
 ```
 
 # Usage
+Data is stored here: [Dataset Alpha Box Link](https://vanderbilt.box.com/s/c51kiljx1eek63upundca3fgmerhekos). You'll need to request access from me before you can view and download the files
 First, copy or move all files you'd like to correct to `DATA/video/` and `DATA/labels/`. Be sure to "check the files out" on the [drive link](https://docs.google.com/spreadsheets/d/1BQwHaPUAT2V6C-czkjbrOMlsg5bcyRzcz5L_1_Blavk/edit?usp=sharing) so that no one else edits the same files at the same time.
 
 ```
@@ -49,6 +50,12 @@ python manual_annotator_3D.py <camera_name> <sequence_idx>
 ```
 
 where `<camera_name>` is p1c1 or similar, and `<sequence_idx>` is an integer between 0 and 3 indicating the integer in the desired video file name.
+
+## Labeling guidelines
+- Every vehicle fully within the frame needs a box. Edge cameras (c1 and c6) vehicles only need boxes if they're less than halfway along the road towards the vanishing points (i.e. only the closer vehicles).
+- Boxes should be tight around the object (i.e. if the vehicle were in a tight cardboard box what would that box look like. Aim for as accurate as possible but don't spend too much time getting every box perfect.
+- Delete boxes that don't contain an object.
+- When necessary, reassign object IDs so that each vehicle has a single object ID through the scene
 
 ## 3D Annotation Controls
  - `9` - advance to next frame
