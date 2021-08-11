@@ -27,7 +27,7 @@ class Annotator_3D():
         
         
         self.outfile = label_file # self.label_path.split(".csv")[0] + "_corrected.csv"
-        
+        print (self.outfile)
         if load_corrected:
             if os.path.exists(self.outfile):
                 self.label_path = self.outfile
@@ -60,6 +60,7 @@ class Annotator_3D():
         self.colors = (np.random.rand(100000,3))*255
         self.last_active_obj_idx = -1
 
+        self.changes_since_last_save = 0
 
         # get transform from RWS -> ImS
         keep = []
@@ -118,6 +119,14 @@ class Annotator_3D():
                 camera = row[36]
                 if camera != self.camera_name:
                     continue
+                
+                if row[10] == "Manual":
+                    if frame_idx not in frame_labels.keys():
+                            frame_labels[frame_idx] = [row]
+                    else:
+                        frame_labels[frame_idx].append(row)
+                    continue
+                            
                 if len(row[39]) == 0: # bad data row
                     #print("bad data row")
                     continue
@@ -261,8 +270,11 @@ class Annotator_3D():
         # label = "Ensure each object has only one ID"
         # self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(10,110),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),2)
 
-        if self.frame_num % 50 == 0:
+        self.changes_since_last_save += 1
+        if self.changes_since_last_save > 10:
                 self.save()
+                self.changes_since_last_save = 0
+
 
     def delete(self,obj_idx, n_frames = -1):
         """
@@ -368,7 +380,12 @@ class Annotator_3D():
                 bbox[11] += y_move
                 bbox[13] += y_move
                 bbox[15] += y_move
+                
+                row[10] = "Manual"
                 row[11:27]  = bbox.astype(int)
+                row[27:] = ["" for i in range(16)]
+                row[36] = self.camera_name
+                
                 break
     
     
@@ -504,6 +521,9 @@ class Annotator_3D():
                 
                 
                 row[11:27] = bbox.astype(int)
+                row[10] = "Manual"
+                row[27:] = ["" for i in range(16)]
+                row[36] = self.camera_name
                 break
             
             print("Realigned object {} in frame {}".format(obj_idx,target_frame_num))
@@ -573,6 +593,9 @@ class Annotator_3D():
                         bbox[15] = bbox[11] + ly 
 
                     row[11:27] = bbox
+                    row[10] = "Manual"
+                    row[27:] = ["" for i in range(16)]
+                    row[36] = self.camera_name
 
                 
                 elif self.active_vp == 1:
@@ -624,6 +647,9 @@ class Annotator_3D():
                         bbox[15] = bbox[13] + ly 
                         
                     row[11:27] = bbox
+                    row[10] = "Manual"
+                    row[27:] = ["" for i in range(16)]
+                    row[36] = self.camera_name
                     
                 elif self.active_vp == 2:
                     
@@ -674,7 +700,9 @@ class Annotator_3D():
                         bbox[15] = bbox[7] + ly 
                         
                     row[11:27] = bbox
-        
+                    row[10] = "Manual"
+                    row[27:] = ["" for i in range(16)]
+                    row[36] = self.camera_name
                 break
          
         #self.realign(obj_idx, self.frame_num)
@@ -716,7 +744,9 @@ class Annotator_3D():
                                 p2 = 1.0 - p1
                                 
                                 newbox = p1 * prev_box + p2 * box
-                                new_row = [f_idx,"",obj_idx,cls] + list(newbox)
+                                new_row = [f_idx,"",obj_idx,cls,"","","","","","",""] + list(newbox) + ["" for i in range(36)]
+                                new_row[10] = "Manual"
+                                new_row[39] = self.camera_name
                                 
                                 try:
                                     self.labels[f_idx].append(new_row)
@@ -759,6 +789,9 @@ class Annotator_3D():
             for row in self.labels[self.frame_num]:
                 if int(row[2]) == obj_idx: # see if obj_idx is in this frame   
                     row[11:27] = offset_box
+                    row[10] = "Manual"
+                    row[27:] = ["" for i in range(16)]
+                    row[36] = self.camera_name
                     print("Used keyframe offset for obj {}".format(obj_idx))
                     break
             
@@ -864,7 +897,7 @@ class Annotator_3D():
                         output_rows.append(row)
                         break
                 else:
-                    output_rows.append(row)
+                    pass#output_rows.append(row)
 
         frames = list(self.labels.keys())
         frames.sort()
@@ -969,10 +1002,10 @@ class Annotator_3D():
                     obj_idx = self.find_box(self.new)
                     #self.new *= 2
                     self.keyframe(obj_idx,self.new)
-                    
-                self.label_buffer.append(copy.deepcopy(self.labels))
-                if len(self.label_buffer) > 50:
-                    self.label_buffer = self.label_buffer[1:]
+                  
+                # self.label_buffer.append(copy.deepcopy(self.labels))
+                # if len(self.label_buffer) > 50:
+                #     self.label_buffer = self.label_buffer[1:]
                     
                 self.plot()
                 self.new = None     
