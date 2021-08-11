@@ -4,22 +4,8 @@
 # manual-track-labeler
 This repository contains code for manually correcting 3D object tracking data to create "perfect" datasets for training and validation. It also contains code for associating instances of the same object across multiple cameras, videos or fields of view. Additional code is included for generating initial 2D object tracking outputs using *Localization-based Tracking* (LBT).
 
-## Included files
-- `manual_annotator_2D.py` -  for correcting 2D object tracking data
-- **`manual_annotator_3D.py`** -  for correcting 3D object tracking data
-- **`manual_annotator_associator.py`** -  for associating objects across sequences
-- `_data/` -directory where all data is stored
-- `train_detector.py` -for training object detector for LBT
-- `train_localizer.py` - for training object localizer for LBT
-- `track_all.py` - for tracking 
-- `tracker_fsld.py` - source code for Localization-based Tracking
-- `config/` - contains Kalman Filter parameters, model parameters, etc. for generating initial object tracks
-- `model/`  - contains object detector/localizer code (Retinanet is used)
-- `util/`   - contains various utilities for object tracking
-- `requirements.txt` - pip-style spec for python environment
-- `environment.yml` - conda-style spec for python environment
-
-Ok Ok I know I'm not perfect, there are tons of other files not mentioned included in this repo. I'll get to updating the readme later, hopefully within the week.
+## How to use
+If you haven't used the labeler tool before, start with [this video](nowhere). It provides an overview of installation, file management, and the labeling process.
 
 ## Requirements
 - Python 3 ( Python 3.6 or later is best)
@@ -129,6 +115,23 @@ If it shall be unto you to use this repository, know ye this: the following colu
 41. theta	
 42. width	
 43. length	
+
+## Included files
+- `manual_annotator_2D.py` -  for correcting 2D object tracking data
+- **`manual_annotator_3D.py`** -  for correcting 3D object tracking data
+- **`manual_annotator_associator.py`** -  for associating objects across sequences
+- `_data/` -directory where all data is stored
+- `train_detector.py` -for training object detector for LBT
+- `train_localizer.py` - for training object localizer for LBT
+- `track_all.py` - for tracking 
+- `tracker_fsld.py` - source code for Localization-based Tracking
+- `config/` - contains Kalman Filter parameters, model parameters, etc. for generating initial object tracks
+- `model/`  - contains object detector/localizer code (Retinanet is used)
+- `util/`   - contains various utilities for object tracking
+- `requirements.txt` - pip-style spec for python environment
+- `environment.yml` - conda-style spec for python environment
+
+Ok Ok I know I'm not perfect, there are tons of other files not mentioned included in this repo. I'll get to updating the readme later, hopefully within the week.
 
 
 ## Cross-sequence Association Controls
