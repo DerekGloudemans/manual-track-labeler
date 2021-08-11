@@ -41,6 +41,7 @@ conda activate mtl-env
 ```
 
 # Usage
+Data is stored here: [Dataset Alpha Box Link](https://vanderbilt.box.com/s/c51kiljx1eek63upundca3fgmerhekos). You'll need to request access from me before you can view and download the files
 First, copy or move all files you'd like to correct to `DATA/video/` and `DATA/labels/`. Be sure to "check the files out" on the [drive link](https://docs.google.com/spreadsheets/d/1BQwHaPUAT2V6C-czkjbrOMlsg5bcyRzcz5L_1_Blavk/edit?usp=sharing) so that no one else edits the same files at the same time.
 
 ```
