@@ -56,10 +56,10 @@ class Annotator_3D():
         self.cont = True
         self.active_command = None
         self.active_vp = 0
+        self.adjust_all = 0
         
         self.colors = (np.random.rand(100000,3))*255
         self.last_active_obj_idx = -1
-
         self.changes_since_last_save = 0
 
         # get transform from RWS -> ImS
@@ -192,7 +192,11 @@ class Annotator_3D():
                 
         self.labels = frame_labels
         self.label_buffer = [[self.frame_num,copy.deepcopy(frame_labels[self.frame_num])]]
-    
+        
+        for i in range(self.length):
+            if i not in self.labels.keys():
+                self.labels[i] = []
+        
         self.plot()
         
     
@@ -226,39 +230,41 @@ class Annotator_3D():
         self.cur_frame = self.frame_buffer[index_in_buffer].copy()
         
         for box in cur_frame_objs:
-            oidx = int(box[2])
-            cls = box[3]
-            if cls == "":
-                cls = self.known_classes[oidx]
-            bbox = np.array(box[11:27]).astype(float).astype(int) 
-            color = self.colors[oidx%100000]
-            ts = 2
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[2],bbox[3]),color,ts)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[2],bbox[3]),(0,255,0),2)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[4],bbox[5]),color,ts)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[4],bbox[5]),(255,0,0),2)
-            
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[8],bbox[9]),color,ts)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[2],bbox[3]),(bbox[10],bbox[11]),color,ts)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[4],bbox[5]),(bbox[12],bbox[13]),color,ts)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[14],bbox[15]),(0,0,255),2)
-            
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[10],bbox[11]),(bbox[8],bbox[9]),color,ts)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[12],bbox[13]),(bbox[8],bbox[9]),color,ts)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[14],bbox[15]),(bbox[12],bbox[13]),color,ts)
-            self.cur_frame = cv2.line(self.cur_frame,(bbox[10],bbox[11]),(bbox[14],bbox[15]),color,ts)
-            
-            # x across back of vehicle            
-            # self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[12],bbox[13]),color,ts)
-            # self.cur_frame = cv2.line(self.cur_frame,(bbox[4],bbox[5]),(bbox[14],bbox[15]),color,ts)
-
-            
-            minx = np.min(bbox[::2])
-            miny = np.min(bbox[1::2])
-            label = "{} {}".format(cls,oidx)
-            self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(int(minx),int(miny - 10)),cv2.FONT_HERSHEY_PLAIN,1,(0,0,0),3)
-            self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(int(minx),int(miny - 10)),cv2.FONT_HERSHEY_PLAIN,1,(255,255,255),1)
-        
+            try:
+                oidx = int(box[2])
+                cls = box[3]
+                if cls == "":
+                    cls = self.known_classes[oidx]
+                bbox = np.array(box[11:27]).astype(float).astype(int) 
+                color = self.colors[oidx%100000]
+                ts = 2
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[2],bbox[3]),color,ts)
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[2],bbox[3]),(0,255,0),2)
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[4],bbox[5]),color,ts)
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[4],bbox[5]),(255,0,0),2)
+                
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[8],bbox[9]),color,ts)
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[2],bbox[3]),(bbox[10],bbox[11]),color,ts)
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[4],bbox[5]),(bbox[12],bbox[13]),color,ts)
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[14],bbox[15]),(0,0,255),2)
+                
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[10],bbox[11]),(bbox[8],bbox[9]),color,ts)
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[12],bbox[13]),(bbox[8],bbox[9]),color,ts)
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[14],bbox[15]),(bbox[12],bbox[13]),color,ts)
+                self.cur_frame = cv2.line(self.cur_frame,(bbox[10],bbox[11]),(bbox[14],bbox[15]),color,ts)
+                
+                # x across back of vehicle            
+                # self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[12],bbox[13]),color,ts)
+                # self.cur_frame = cv2.line(self.cur_frame,(bbox[4],bbox[5]),(bbox[14],bbox[15]),color,ts)
+    
+                
+                minx = np.min(bbox[::2])
+                miny = np.min(bbox[1::2])
+                label = "{} {}".format(cls,oidx)
+                self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(int(minx),int(miny - 10)),cv2.FONT_HERSHEY_PLAIN,1,(0,0,0),3)
+                self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(int(minx),int(miny - 10)),cv2.FONT_HERSHEY_PLAIN,1,(255,255,255),1)
+            except:
+                pass
             # vanishing points
             # self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(int(self.vps[0][0]),int(self.vps[0][1])),color,1)
             # self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(int(self.vps[1][0]),int(self.vps[1][1])),color,1)
@@ -272,7 +278,7 @@ class Annotator_3D():
         # self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(10,110),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),2)
 
         self.changes_since_last_save += 1
-        if self.changes_since_last_save > 10:
+        if self.changes_since_last_save > 50:
                 self.save()
                 self.changes_since_last_save = 0
 
@@ -357,33 +363,38 @@ class Annotator_3D():
         x_move = disp[2] - disp[0]
         y_move = disp[3] - disp[1]
         
-        for row in self.labels[self.frame_num]:
-            if int(row[2]) == obj_idx:
-                bbox = np.array(row[11:27]).astype(float)
-                
-                bbox[0] += x_move
-                bbox[2] += x_move
-                bbox[4] += x_move
-                bbox[6] += x_move
-                bbox[8] += x_move
-                bbox[10] += x_move
-                bbox[12] += x_move
-                bbox[14] += x_move
-                bbox[1] += y_move
-                bbox[3] += y_move
-                bbox[5] += y_move
-                bbox[7] += y_move
-                bbox[9] += y_move
-                bbox[11] += y_move
-                bbox[13] += y_move
-                bbox[15] += y_move
-                
-                row[10] = "Manual"
-                row[11:27]  = bbox.astype(int)
-                row[27:] = ["" for i in range(16)]
-                row[36] = self.camera_name
-                
-                break
+        frames_to_adjust = [self.frame_num]
+        if self.adjust_all:
+            frames_to_adjust = [j for j in range(self.frame_num,self.frame_num + 200)]
+        
+        for frame_idx in frames_to_adjust:
+            for row in self.labels[frame_idx]:
+                if int(row[2]) == obj_idx:
+                    bbox = np.array(row[11:27]).astype(float)
+                    
+                    bbox[0] += x_move
+                    bbox[2] += x_move
+                    bbox[4] += x_move
+                    bbox[6] += x_move
+                    bbox[8] += x_move
+                    bbox[10] += x_move
+                    bbox[12] += x_move
+                    bbox[14] += x_move
+                    bbox[1] += y_move
+                    bbox[3] += y_move
+                    bbox[5] += y_move
+                    bbox[7] += y_move
+                    bbox[9] += y_move
+                    bbox[11] += y_move
+                    bbox[13] += y_move
+                    bbox[15] += y_move
+                    
+                    row[10] = "Manual"
+                    row[11:27]  = bbox.astype(int)
+                    row[27:] = ["" for i in range(16)]
+                    row[36] = self.camera_name
+                    
+                    break
     
     
     def reassign(self,old,new):
@@ -419,111 +430,115 @@ class Annotator_3D():
             8. btl
             9. ftl
         """
+        frames_to_adjust = [self.frame_num]
+        if self.adjust_all:
+            frames_to_adjust = [j for j in range(self.frame_num,self.frame_num + 200)]
         
-        for row in self.labels[target_frame_num]:
-            if int(row[2]) == obj_idx:
-                bbox = np.array(row[11:27]).astype(float)
+        for target_frame_num in frames_to_adjust:
+            for row in self.labels[target_frame_num]:
+                if int(row[2]) == obj_idx:
+                    bbox = np.array(row[11:27]).astype(float)
+                    
+                    # 1. - realign bbr
+                    # express bbr as a vector from fbr (mag,dir)
+                    mag = np.sqrt((bbox[4] - bbox[0])**2 + (bbox[5] - bbox[1])**2)
+                    
+                    # get angle to vp
+                    dr  = np.arctan((self.vps[0][1] - bbox[1])/(self.vps[0][0] - bbox[0]))
+                    if (self.vps[0][0] - bbox[0]) < 0:
+                        dr = dr + np.pi
+                    
+                    # get sign term that is + if vector points towards vp, - otherwise
+                    vp_length = np.sqrt((self.vps[0][0] - bbox[0])**2 + (self.vps[0][1] - bbox[1])**2)
+                    perp_comp = ((self.vps[0][0]-bbox[0]) * (bbox[4] - bbox[0]) + (self.vps[0][1]-bbox[1]) * (bbox[5] - bbox[1]))/(vp_length*mag)
+                    sign = np.sign(perp_comp)
+                    
+                    # realign
+                    bbox[4] = bbox[0] + sign* np.cos(dr) * mag
+                    bbox[5] = bbox[1] + sign* np.sin(dr) * mag
+                    
+                    
+                    #2 - realign bbl
+                    # express bbl as a vector from bbr (mag,dir)
+                    mag = np.sqrt((bbox[6] - bbox[4])**2 + (bbox[7] - bbox[5])**2)
+                    
+                    # get angle to vp
+                    dr  = np.arctan((self.vps[1][1] - bbox[5])/(self.vps[1][0] - bbox[4]))
+                    if (self.vps[1][0] - bbox[4]) < 0:
+                        dr = dr + np.pi
+                    
+                    vp_length = np.sqrt((self.vps[1][0] - bbox[4])**2 + (self.vps[1][1] - bbox[5])**2)
+                    perp_comp = ((self.vps[1][0]-bbox[4]) * (bbox[6] - bbox[4]) + (self.vps[1][1]-bbox[5]) * (bbox[7] - bbox[5]))/(vp_length*mag)
+                    sign = np.sign(perp_comp)
+                    
+                    # realign
+                    bbox[6] = bbox[4] + sign* np.cos(dr) * mag
+                    bbox[7] = bbox[5] + sign* np.sin(dr) * mag
+                    
+                    
+                    
+                    # 3. realign fbl
+                    # find intersection of lines
+                    x1,y1,x2,y2 = bbox[6],bbox[7],self.vps[0][0],self.vps[0][1]
+                    x3,y3,x4,y4 = bbox[0],bbox[1],self.vps[1][0],self.vps[1][1]
+                    
+                    D = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)
+                    bbox[2] = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-x4*y3))/D
+                    bbox[3] = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-x4*y3))/D
+                    
+    
+                    # 4. realign ftr
+                    # express ftr as a vector from fbr (mag,dir)
+                    mag = np.sqrt((bbox[8] - bbox[0])**2 + (bbox[9] - bbox[1])**2)
+                    
+                    # get angle to vp
+                    dr  = np.arctan((self.vps[2][1] - bbox[1])/(self.vps[2][0] - bbox[0]))
+                    if (self.vps[2][0] - bbox[0]) < 0:
+                        dr = dr + np.pi
+                    
+                    # get sign term that is + if vector points towards vp, - otherwise
+                    vp_length = np.sqrt((self.vps[2][0] - bbox[0])**2 + (self.vps[2][1] - bbox[1])**2)
+                    perp_comp = ((self.vps[2][0]-bbox[0]) * (bbox[8] - bbox[0]) + (self.vps[2][1]-bbox[1]) * (bbox[9] - bbox[1]))/(vp_length*mag)
+                    sign = np.sign(perp_comp)
+                    
+                    # realign
+                    bbox[8] = bbox[0] + sign* np.cos(dr) * mag
+                    bbox[9] = bbox[1] + sign* np.sin(dr) * mag
+                    
+                    
+                    # 5. realign btr
+                    # find intersection of lines
+                    x1,y1,x2,y2 = bbox[8],bbox[9],self.vps[0][0],self.vps[0][1]
+                    x3,y3,x4,y4 = bbox[4],bbox[5],self.vps[2][0],self.vps[2][1]
+                    
+                    D = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)
+                    bbox[12] = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-x4*y3))/D
+                    bbox[13] = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-x4*y3))/D
+                    
+                    #6. realign btl
+                    x1,y1,x2,y2 = bbox[12],bbox[13],self.vps[1][0],self.vps[1][1]
+                    x3,y3,x4,y4 = bbox[6],bbox[7],self.vps[2][0],self.vps[2][1]
+                    
+                    D = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)
+                    bbox[14] = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-x4*y3))/D
+                    bbox[15] = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-x4*y3))/D
+                    
+                    #6. realign ftl
+                    x1,y1,x2,y2 = bbox[14],bbox[15],self.vps[0][0],self.vps[0][1]
+                    x3,y3,x4,y4 = bbox[2],bbox[3],self.vps[2][0],self.vps[2][1]
+                    
+                    D = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)
+                    bbox[10] = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-x4*y3))/D
+                    bbox[11] = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-x4*y3))/D
+                    
+                    
+                    row[11:27] = bbox.astype(int)
+                    row[10] = "Manual"
+                    row[27:] = ["" for i in range(16)]
+                    row[36] = self.camera_name
+                    break
                 
-                # 1. - realign bbr
-                # express bbr as a vector from fbr (mag,dir)
-                mag = np.sqrt((bbox[4] - bbox[0])**2 + (bbox[5] - bbox[1])**2)
-                
-                # get angle to vp
-                dr  = np.arctan((self.vps[0][1] - bbox[1])/(self.vps[0][0] - bbox[0]))
-                if (self.vps[0][0] - bbox[0]) < 0:
-                    dr = dr + np.pi
-                
-                # get sign term that is + if vector points towards vp, - otherwise
-                vp_length = np.sqrt((self.vps[0][0] - bbox[0])**2 + (self.vps[0][1] - bbox[1])**2)
-                perp_comp = ((self.vps[0][0]-bbox[0]) * (bbox[4] - bbox[0]) + (self.vps[0][1]-bbox[1]) * (bbox[5] - bbox[1]))/(vp_length*mag)
-                sign = np.sign(perp_comp)
-                
-                # realign
-                bbox[4] = bbox[0] + sign* np.cos(dr) * mag
-                bbox[5] = bbox[1] + sign* np.sin(dr) * mag
-                
-                
-                #2 - realign bbl
-                # express bbl as a vector from bbr (mag,dir)
-                mag = np.sqrt((bbox[6] - bbox[4])**2 + (bbox[7] - bbox[5])**2)
-                
-                # get angle to vp
-                dr  = np.arctan((self.vps[1][1] - bbox[5])/(self.vps[1][0] - bbox[4]))
-                if (self.vps[1][0] - bbox[4]) < 0:
-                    dr = dr + np.pi
-                
-                vp_length = np.sqrt((self.vps[1][0] - bbox[4])**2 + (self.vps[1][1] - bbox[5])**2)
-                perp_comp = ((self.vps[1][0]-bbox[4]) * (bbox[6] - bbox[4]) + (self.vps[1][1]-bbox[5]) * (bbox[7] - bbox[5]))/(vp_length*mag)
-                sign = np.sign(perp_comp)
-                
-                # realign
-                bbox[6] = bbox[4] + sign* np.cos(dr) * mag
-                bbox[7] = bbox[5] + sign* np.sin(dr) * mag
-                
-                
-                
-                # 3. realign fbl
-                # find intersection of lines
-                x1,y1,x2,y2 = bbox[6],bbox[7],self.vps[0][0],self.vps[0][1]
-                x3,y3,x4,y4 = bbox[0],bbox[1],self.vps[1][0],self.vps[1][1]
-                
-                D = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)
-                bbox[2] = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-x4*y3))/D
-                bbox[3] = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-x4*y3))/D
-                
-
-                # 4. realign ftr
-                # express ftr as a vector from fbr (mag,dir)
-                mag = np.sqrt((bbox[8] - bbox[0])**2 + (bbox[9] - bbox[1])**2)
-                
-                # get angle to vp
-                dr  = np.arctan((self.vps[2][1] - bbox[1])/(self.vps[2][0] - bbox[0]))
-                if (self.vps[2][0] - bbox[0]) < 0:
-                    dr = dr + np.pi
-                
-                # get sign term that is + if vector points towards vp, - otherwise
-                vp_length = np.sqrt((self.vps[2][0] - bbox[0])**2 + (self.vps[2][1] - bbox[1])**2)
-                perp_comp = ((self.vps[2][0]-bbox[0]) * (bbox[8] - bbox[0]) + (self.vps[2][1]-bbox[1]) * (bbox[9] - bbox[1]))/(vp_length*mag)
-                sign = np.sign(perp_comp)
-                
-                # realign
-                bbox[8] = bbox[0] + sign* np.cos(dr) * mag
-                bbox[9] = bbox[1] + sign* np.sin(dr) * mag
-                
-                
-                # 5. realign btr
-                # find intersection of lines
-                x1,y1,x2,y2 = bbox[8],bbox[9],self.vps[0][0],self.vps[0][1]
-                x3,y3,x4,y4 = bbox[4],bbox[5],self.vps[2][0],self.vps[2][1]
-                
-                D = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)
-                bbox[12] = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-x4*y3))/D
-                bbox[13] = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-x4*y3))/D
-                
-                #6. realign btl
-                x1,y1,x2,y2 = bbox[12],bbox[13],self.vps[1][0],self.vps[1][1]
-                x3,y3,x4,y4 = bbox[6],bbox[7],self.vps[2][0],self.vps[2][1]
-                
-                D = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)
-                bbox[14] = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-x4*y3))/D
-                bbox[15] = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-x4*y3))/D
-                
-                #6. realign ftl
-                x1,y1,x2,y2 = bbox[14],bbox[15],self.vps[0][0],self.vps[0][1]
-                x3,y3,x4,y4 = bbox[2],bbox[3],self.vps[2][0],self.vps[2][1]
-                
-                D = (x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)
-                bbox[10] = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-x4*y3))/D
-                bbox[11] = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-x4*y3))/D
-                
-                
-                row[11:27] = bbox.astype(int)
-                row[10] = "Manual"
-                row[27:] = ["" for i in range(16)]
-                row[36] = self.camera_name
-                break
-            
-            print("Realigned object {} in frame {}".format(obj_idx,target_frame_num))
+                #print("Realigned object {} in frame {}".format(obj_idx,target_frame_num))
         
     
     def redraw(self,obj_idx,disp):
@@ -538,172 +553,190 @@ class Annotator_3D():
         if disp[0] == disp[2] and disp[1] == disp[3]:
             return
         
-        for row in self.labels[self.frame_num]:
-            if int(row[2]) == obj_idx:
-                bbox = np.array(row[11:27]).astype(float)
-                
-                # determine whether start point was closer to one side or the other of the box based on active dim
-                if self.active_vp == 0:
-                    x1 = (bbox[0] + bbox[2] + bbox[8]  + bbox[10])/4.0
-                    x2 = (bbox[4] + bbox[6] + bbox[12] + bbox[14])/4.0
-                    y1 = (bbox[1] + bbox[3] + bbox[9] + bbox[11])/4.0
-                    y2 = (bbox[5] + bbox[7] + bbox[13] + bbox[15])/4.0
-                    
-                    d1 = (x1 - disp[0])**2 + (y1 - disp[1])**2
-                    d2 = (x2 - disp[0])**2 + (y2 - disp[1])**2
-                    
-                    lx = x1 - x2
-                    ly = y1 - y2
-                    length = np.sqrt(lx**2 + ly**2)
-                    disp_length = np.sqrt((disp[2] -disp[0])**2 + (disp[3] - disp[1])**2)
-                    
-                    perp_comp = ((disp[2]-disp[0]) * lx + (disp[3] - disp[1])*ly)/(disp_length*length)
-                    disp_length *= perp_comp
-                    
-                    
-                    if d1 < d2:
-                        # move front
-                        lx *= (length+disp_length)/length
-                        ly *= (length+disp_length)/length
-                        
-                        
-                        bbox[0] = bbox[4] + lx 
-                        bbox[2] = bbox[6] + lx 
-                        bbox[8] = bbox[12] + lx 
-                        bbox[10] = bbox[14] + lx 
-                        bbox[1] = bbox[5] + ly 
-                        bbox[3] = bbox[7] + ly 
-                        bbox[9] = bbox[13] + ly 
-                        bbox[11] = bbox[15] + ly 
-                    else:
-                        
-                        lx *= (-length+disp_length)/length
-                        ly *= (-length+disp_length)/length
-                        
-                        bbox[4] = bbox[0] + lx 
-                        bbox[6] = bbox[2] + lx 
-                        bbox[12] = bbox[8] + lx 
-                        bbox[14] = bbox[10] + lx 
-                        bbox[5] = bbox[1] + ly 
-                        bbox[7] = bbox[3] + ly
-                        bbox[13] = bbox[9] + ly 
-                        bbox[15] = bbox[11] + ly 
-
-                    row[11:27] = bbox
-                    row[10] = "Manual"
-                    row[27:] = ["" for i in range(16)]
-                    row[36] = self.camera_name
-
-                
-                elif self.active_vp == 1:
-                    
-                
-                    x1 = (bbox[0] + bbox[4] + bbox[8]  + bbox[12])/4.0 # RIGHT SIDE
-                    x2 = (bbox[2] + bbox[6] + bbox[10] + bbox[14])/4.0 # LEFT SIDE
-                    y1 = (bbox[1] + bbox[5] + bbox[9] + bbox[13])/4.0
-                    y2 = (bbox[3] + bbox[7] + bbox[11] + bbox[15])/4.0
+        frames_to_adjust = [self.frame_num]
+        if self.adjust_all:
+            frames_to_adjust = [j for j in range(self.frame_num,self.frame_num + 200)]
         
-                    d1 = (x1 - disp[0])**2 + (y1 - disp[1])**2
-                    d2 = (x2 - disp[0])**2 + (y2 - disp[1])**2
+        for frame_idx in frames_to_adjust:
+            for row in self.labels[frame_idx]:
+                if int(row[2]) == obj_idx:
+                    bbox = np.array(row[11:27]).astype(float)
                     
-                    lx = x1 - x2
-                    ly = y1 - y2
-                    length = np.sqrt(lx**2 + ly**2)
-                    disp_length = np.sqrt((disp[2] -disp[0])**2 + (disp[3] - disp[1])**2)
-                    
-                    perp_comp = ((disp[2]-disp[0]) * lx + (disp[3] - disp[1])*ly)/(disp_length*length)
-                    disp_length *= perp_comp
-                    
-                    
-                    if d1 < d2:
-                        # move front
-                        lx *= (length+disp_length)/length
-                        ly *= (length+disp_length)/length
+                    # determine whether start point was closer to one side or the other of the box based on active dim
+                    if self.active_vp == 0:
+                        
+                        # only do this part once:
+                        try: 
+                            disp_length
+                        except:
+                            x1 = (bbox[0] + bbox[2] + bbox[8]  + bbox[10])/4.0
+                            x2 = (bbox[4] + bbox[6] + bbox[12] + bbox[14])/4.0
+                            y1 = (bbox[1] + bbox[3] + bbox[9] + bbox[11])/4.0
+                            y2 = (bbox[5] + bbox[7] + bbox[13] + bbox[15])/4.0
+                            
+                            d1 = (x1 - disp[0])**2 + (y1 - disp[1])**2
+                            d2 = (x2 - disp[0])**2 + (y2 - disp[1])**2
+                            
+                            lx = x1 - x2
+                            ly = y1 - y2
+                            length = np.sqrt(lx**2 + ly**2)
+                            disp_length = np.sqrt((disp[2] -disp[0])**2 + (disp[3] - disp[1])**2)
+                            
+                            perp_comp = ((disp[2]-disp[0]) * lx + (disp[3] - disp[1])*ly)/(disp_length*length)
+                            disp_length *= perp_comp
                         
                         
-                        bbox[0] = bbox[2] + lx 
-                        bbox[4] = bbox[6] + lx 
-                        bbox[8] = bbox[10] + lx 
-                        bbox[12] = bbox[14] + lx 
-                        bbox[1] = bbox[3] + ly 
-                        bbox[5] = bbox[7] + ly 
-                        bbox[9] = bbox[11] + ly 
-                        bbox[13] = bbox[15] + ly 
-                    else:
-                        
-                        lx *= (-length+disp_length)/length
-                        ly *= (-length+disp_length)/length
-                        
-                        bbox[2] = bbox[0] + lx 
-                        bbox[6] = bbox[4] + lx 
-                        bbox[10] = bbox[8] + lx 
-                        bbox[14] = bbox[12] + lx 
-                        bbox[3] = bbox[1] + ly 
-                        bbox[7] = bbox[5] + ly
-                        bbox[11] = bbox[9] + ly 
-                        bbox[15] = bbox[13] + ly 
-                        
-                    row[11:27] = bbox
-                    row[10] = "Manual"
-                    row[27:] = ["" for i in range(16)]
-                    row[36] = self.camera_name
+                            if d1 < d2:
+                                # move front
+                                lx *= (length+disp_length)/length
+                                ly *= (length+disp_length)/length
+                            else:
+                                lx *= (-length+disp_length)/length
+                                ly *= (-length+disp_length)/length
+                            
+                        if d1 < d2:
+                            bbox[0] = bbox[4] + lx 
+                            bbox[2] = bbox[6] + lx 
+                            bbox[8] = bbox[12] + lx 
+                            bbox[10] = bbox[14] + lx 
+                            bbox[1] = bbox[5] + ly 
+                            bbox[3] = bbox[7] + ly 
+                            bbox[9] = bbox[13] + ly 
+                            bbox[11] = bbox[15] + ly 
+                        else:
+                            bbox[4] = bbox[0] + lx 
+                            bbox[6] = bbox[2] + lx 
+                            bbox[12] = bbox[8] + lx 
+                            bbox[14] = bbox[10] + lx 
+                            bbox[5] = bbox[1] + ly 
+                            bbox[7] = bbox[3] + ly
+                            bbox[13] = bbox[9] + ly 
+                            bbox[15] = bbox[11] + ly 
+    
+                        row[11:27] = bbox
+                        row[10] = "Manual"
+                        row[27:] = ["" for i in range(16)]
+                        row[36] = self.camera_name
+    
                     
-                elif self.active_vp == 2:
-                    
+                    elif self.active_vp == 1:
+                        
+                        # only do this part once:
+                        try: 
+                            disp_length
+                        except:
+                            x1 = (bbox[0] + bbox[4] + bbox[8]  + bbox[12])/4.0 # RIGHT SIDE
+                            x2 = (bbox[2] + bbox[6] + bbox[10] + bbox[14])/4.0 # LEFT SIDE
+                            y1 = (bbox[1] + bbox[5] + bbox[9] + bbox[13])/4.0
+                            y2 = (bbox[3] + bbox[7] + bbox[11] + bbox[15])/4.0
                 
-                    x1 = (bbox[0] + bbox[4] + bbox[6]  + bbox[2])/4.0 # BOTTOM SIDE
-                    x2 = (bbox[8] + bbox[12] + bbox[10] + bbox[14])/4.0 # TOP SIDE
-                    y1 = (bbox[1] + bbox[3] + bbox[5] + bbox[7])/4.0
-                    y2 = (bbox[9] + bbox[11] + bbox[13] + bbox[15])/4.0
-        
-                    d1 = (x1 - disp[0])**2 + (y1 - disp[1])**2
-                    d2 = (x2 - disp[0])**2 + (y2 - disp[1])**2
+                            d1 = (x1 - disp[0])**2 + (y1 - disp[1])**2
+                            d2 = (x2 - disp[0])**2 + (y2 - disp[1])**2
+                            
+                            lx = x1 - x2
+                            ly = y1 - y2
+                            length = np.sqrt(lx**2 + ly**2)
+                            disp_length = np.sqrt((disp[2] -disp[0])**2 + (disp[3] - disp[1])**2)
+                            
+                            perp_comp = ((disp[2]-disp[0]) * lx + (disp[3] - disp[1])*ly)/(disp_length*length)
+                            disp_length *= perp_comp
+                        
+                        
+                            if d1 < d2:
+                                # move front
+                                lx *= (length+disp_length)/length
+                                ly *= (length+disp_length)/length
+                            else:
+                                lx *= (-length+disp_length)/length
+                                ly *= (-length+disp_length)/length
+                        
+                        
+                        if d1 < d2:
+                            bbox[0] = bbox[2] + lx 
+                            bbox[4] = bbox[6] + lx 
+                            bbox[8] = bbox[10] + lx 
+                            bbox[12] = bbox[14] + lx 
+                            bbox[1] = bbox[3] + ly 
+                            bbox[5] = bbox[7] + ly 
+                            bbox[9] = bbox[11] + ly 
+                            bbox[13] = bbox[15] + ly 
+                        else:
+                            bbox[2] = bbox[0] + lx 
+                            bbox[6] = bbox[4] + lx 
+                            bbox[10] = bbox[8] + lx 
+                            bbox[14] = bbox[12] + lx 
+                            bbox[3] = bbox[1] + ly 
+                            bbox[7] = bbox[5] + ly
+                            bbox[11] = bbox[9] + ly 
+                            bbox[15] = bbox[13] + ly 
+                            
+                        row[11:27] = bbox
+                        row[10] = "Manual"
+                        row[27:] = ["" for i in range(16)]
+                        row[36] = self.camera_name
+                        
+                    elif self.active_vp == 2:
+                        
+                        # only do this part once:
+                        try: 
+                            disp_length
+                        except:
+                            x1 = (bbox[0] + bbox[4] + bbox[6]  + bbox[2])/4.0 # BOTTOM SIDE
+                            x2 = (bbox[8] + bbox[12] + bbox[10] + bbox[14])/4.0 # TOP SIDE
+                            y1 = (bbox[1] + bbox[3] + bbox[5] + bbox[7])/4.0
+                            y2 = (bbox[9] + bbox[11] + bbox[13] + bbox[15])/4.0
+                
+                            d1 = (x1 - disp[0])**2 + (y1 - disp[1])**2
+                            d2 = (x2 - disp[0])**2 + (y2 - disp[1])**2
+                            
+                            lx = x1 - x2
+                            ly = y1 - y2
+                            length = np.sqrt(lx**2 + ly**2)
+                            disp_length = np.sqrt((disp[2] -disp[0])**2 + (disp[3] - disp[1])**2)
+                            
+                            perp_comp = ((disp[2]-disp[0]) * lx + (disp[3] - disp[1])*ly)/(disp_length*length)
+                            disp_length *= perp_comp
+                        
+                        
+                            if d1 < d2:
+                                # move front
+                                lx *= (length+disp_length)/length
+                                ly *= (length+disp_length)/length
+                            else:
+                                lx *= (-length+disp_length)/length
+                                ly *= (-length+disp_length)/length
+                            
+                            
+                        if d1 < d2:
+                            bbox[0] = bbox[8] + lx 
+                            bbox[2] = bbox[10] + lx 
+                            bbox[4] = bbox[12] + lx 
+                            bbox[6] = bbox[14] + lx 
+                            bbox[1] = bbox[9] + ly 
+                            bbox[3] = bbox[11] + ly 
+                            bbox[5] = bbox[13] + ly 
+                            bbox[7] = bbox[15] + ly 
                     
-                    lx = x1 - x2
-                    ly = y1 - y2
-                    length = np.sqrt(lx**2 + ly**2)
-                    disp_length = np.sqrt((disp[2] -disp[0])**2 + (disp[3] - disp[1])**2)
+                        else:
+                            bbox[8]  = bbox[0] + lx 
+                            bbox[10] = bbox[2] + lx 
+                            bbox[12] = bbox[4] + lx 
+                            bbox[14] = bbox[6] + lx 
+                            bbox[9]  = bbox[1] + ly 
+                            bbox[11] = bbox[3] + ly
+                            bbox[13] = bbox[5] + ly 
+                            bbox[15] = bbox[7] + ly 
+                            
+                        row[11:27] = bbox
+                        row[10] = "Manual"
+                        row[27:] = ["" for i in range(16)]
+                        row[36] = self.camera_name
                     
-                    perp_comp = ((disp[2]-disp[0]) * lx + (disp[3] - disp[1])*ly)/(disp_length*length)
-                    disp_length *= perp_comp
-                    
-                    
-                    if d1 < d2:
-                        # move front
-                        lx *= (length+disp_length)/length
-                        ly *= (length+disp_length)/length
-                        
-                        
-                        bbox[0] = bbox[8] + lx 
-                        bbox[2] = bbox[10] + lx 
-                        bbox[4] = bbox[12] + lx 
-                        bbox[6] = bbox[14] + lx 
-                        bbox[1] = bbox[9] + ly 
-                        bbox[3] = bbox[11] + ly 
-                        bbox[5] = bbox[13] + ly 
-                        bbox[7] = bbox[15] + ly 
-                    else:
-                        
-                        lx *= (-length+disp_length)/length
-                        ly *= (-length+disp_length)/length
-                        
-                        bbox[8]  = bbox[0] + lx 
-                        bbox[10] = bbox[2] + lx 
-                        bbox[12] = bbox[4] + lx 
-                        bbox[14] = bbox[6] + lx 
-                        bbox[9]  = bbox[1] + ly 
-                        bbox[11] = bbox[3] + ly
-                        bbox[13] = bbox[5] + ly 
-                        bbox[15] = bbox[7] + ly 
-                        
-                    row[11:27] = bbox
-                    row[10] = "Manual"
-                    row[27:] = ["" for i in range(16)]
-                    row[36] = self.camera_name
-                break
-         
-        #self.realign(obj_idx, self.frame_num)
-        print("Redrew box {} for frame {}".format(obj_idx,self.frame_num))
+                    #self.realign(obj_idx, frame_idx)
+                    break
+             
+            #self.realign(obj_idx, self.frame_num)
+            print("Redrew box {} for frame {}".format(obj_idx,frame_idx))
         
     
     def undo(self):
@@ -815,17 +848,42 @@ class Annotator_3D():
         #point = point *2
         #print(point)
 
+        # for row in self.labels[self.frame_num]:
+        #     bbox = np.array(row[11:27]).astype(float).astype(int)
+        #     minx = np.min(bbox[::2])
+        #     maxx = np.max(bbox[::2])
+        #     miny = np.min(bbox[1::2])
+        #     maxy = np.max(bbox[1::2])
+        #      # since we downsample image before plotting
+            
+        #     if point[0] > minx and point[0] < maxx and point[1] > miny and point[1] < maxy:
+        #         obj_idx = int(row[2])
+        #         return obj_idx
+        
+        obj_dists = []
+        obj_idxs = []
         for row in self.labels[self.frame_num]:
             bbox = np.array(row[11:27]).astype(float).astype(int)
-            minx = np.min(bbox[::2])
-            maxx = np.max(bbox[::2])
-            miny = np.min(bbox[1::2])
-            maxy = np.max(bbox[1::2])
-             # since we downsample image before plotting
+            obj_idxs.append(int(row[2]))
             
-            if point[0] > minx and point[0] < maxx and point[1] > miny and point[1] < maxy:
-                obj_idx = int(row[2])
-                return obj_idx
+             # get distance to each point
+            min_dist = np.inf
+            for i in range(8):
+                dist = np.sqrt((bbox[2*i] - point[0])**2 + (bbox[1+2*i] - point[1])**2)
+                if dist < min_dist:
+                    min_dist = dist
+            obj_dists.append(min_dist)
+                    
+        mn = min(obj_dists)
+        min_idx = obj_dists.index(mn)
+        if mn > 100:
+            return -1
+        
+        obj_idx = obj_idxs[min_idx]
+        
+        return obj_idx
+        
+        
         
         # determine whether point falls within any object boxes
         return -1
@@ -858,8 +916,14 @@ class Annotator_3D():
                 self.frame_num += 1
                 self.plot()
             
-            self.label_buffer = [[self.frame_num,copy.deepcopy(self.labels[self.frame_num])]]
-
+            try:
+                self.label_buffer = [[self.frame_num,copy.deepcopy(self.labels[self.frame_num])]]
+            except:
+                self.label_buffer = []
+            
+            for row in self.labels[self.frame_num]:
+                obj_idx = int(row[2])
+                #self.realign(obj_idx, self.frame_num)
             
         else:
             print("On last frame, cannot advance to next frame")    
@@ -893,6 +957,7 @@ class Annotator_3D():
             
         else:
             print("On first frame, cannot return to previous frame")
+
     
     def save(self):
         """
@@ -1017,6 +1082,11 @@ class Annotator_3D():
                     obj_idx = self.find_box(self.new)
                     #self.new *= 2
                     self.keyframe(obj_idx,self.new)
+                    
+        
+                elif self.active_command == "INTERPOLATE":
+                    obj_idx = self.find_box(self.new)
+                    self.interpolate(obj_idx)  
                   
                 self.label_buffer.append([self.frame_num,copy.deepcopy(self.labels[self.frame_num])])
                 if len(self.label_buffer) > 50:
@@ -1028,7 +1098,8 @@ class Annotator_3D():
                
            #self.cur_frame = cv2.resize(self.cur_frame,(1920,1080))
            cv2.imshow("window", self.cur_frame)
-           title = "Frame {}/{} --- Active Command: {} --- VP {} ".format(self.frame_num,self.length,self.active_command,self.active_vp)
+           modifier = "(in ALL frames)" if self.adjust_all and self.active_command in ["MOVE","REDRAW"] else ""
+           title = "Frame {}/{} --- Active Command: {} {} --- VP {} ".format(self.frame_num,self.length,self.active_command,modifier,self.active_vp)
            cv2.setWindowTitle("window",str(title))
            
            key = cv2.waitKey(1)
@@ -1045,20 +1116,20 @@ class Annotator_3D():
                 self.active_command = "ADD"
            elif key == ord("w"):
                 self.active_command = "REDRAW"
+                self.adjust_all = 0
            elif key == ord("l"):
                 self.active_command = "REALIGN"
            elif key == ord("m"):
                 self.active_command = "MOVE"
+                self.adjust_all = 0
            elif key == ord("k"):
                self.keyframe_point = None
                self.active_command = "KEYFRAME"
-                
            elif key == ord("s"):
                     frame_idx = int(self.keyboard_input())
                     self.skip_to(frame_idx)          
            elif key == ord("i"):
-                    obj_idx = int(self.keyboard_input())
-                    self.interpolate(obj_idx)         
+                    self.active_command = "INTERPOLATE"       
            elif key == ord("q"):
                 self.quit()
            elif key == ord("u"):
@@ -1067,7 +1138,8 @@ class Annotator_3D():
                self.scan()
            elif key == ord("1"):
                self.active_vp = (self.active_vp +1)%3
-           
+           elif key == ord("2"):
+               self.adjust_all = (self.adjust_all +1)%2
         
         
 if __name__ == "__main__":
@@ -1085,7 +1157,7 @@ if __name__ == "__main__":
        
         
     except:
-        camera_id = "p1c3"
+        camera_id = "p1c2"
         sequence_idx = 0
         
         
