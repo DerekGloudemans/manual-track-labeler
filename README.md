@@ -56,7 +56,7 @@ where `<camera_name>` is p1c1 or similar, and `<sequence_idx>` is an integer bet
 - Boxes should be tight around the object (i.e. if the vehicle were in a tight cardboard box what would that box look like. Aim for as accurate as possible but don't spend too much time getting every box perfect.
 - Delete boxes that don't contain an object.
 - When necessary, reassign object IDs so that each vehicle has a single object ID through the scene
-
+- Note that when you click on a box, the algorithm to find which box you clicked on is based on the nearest corner point. There is a maximum threshold beyond which no object will be selected. Thus, if you are having trouble selecting a specific object, try clicking closer to the box corners for this object.
 ## 3D Annotation Controls
  - `9` - advance to next frame
 - `8` - return to previous frame. Note that only 200 frames are kept in buffer so attempting to move backwards more than 200 frames will cause an error
@@ -64,12 +64,12 @@ where `<camera_name>` is p1c1 or similar, and `<sequence_idx>` is an integer bet
 - `r` - enter REASSIGN mode - in this mode, if you click on an object, enter an ID number, and press enter, the object will be assigned the new ID number in this and all subsequent frames. This is used when two object IDs correspond to the same object at different points in time
 - `d` - enter DELETE mode - in this mode, if you click on an object and press enter, the object is deleted in this and all subsequent frames. Alternatively, you can click an object and enter a number, then press enter, to delete the object in that number of subsequent frames. 
 - `a` - enter ADD mode - in this mode, if you click on an object, enter an ID number, and press enter, a new box is created and assigned to the relevant object. You can press enter to use the most recent ID number again, Note that if no other boxes exist for this object, you must also enter an object class and then press enter again. You will have to manually adjust the box until it fits the object.
-- `w` - enter REDRAW mode - in this mode, you can click on a side of the box and drag it to change the box's dimensions. Note that at a given time, you can only drag the box along one of the 3 principal axes. You can toggle which axis is active by pressing `1`.
+- `w` - enter REDRAW mode - in this mode, you can click on a side of the box and drag it to change the box's dimensions. Note that at a given time, you can only drag the box along one of the 3 principal axes. You can toggle which axis is active by pressing `1`. If you press `2` in this mode, you can adjust all boxes for an object (in all subsequent frames) at the same time. Be careful as you cannot undo this operation so will instead have to attempt to perform the reverse operation to undo changes.
 - `s` - pressing `s` followed by a frame number and enter will skip to that frame.Note that you will not be able to move backwards to previous frames after skipping because the previous frames will not have been buffered. Useful for skipping to where you left off on a previous labeling run.
 - `f` - fast forward through frames. At any time, you can press enter or f to stop fast-forwarding.
 - `q` - save and quit
-- `i` - pressing `i` followed by an object ID number and enter will interpolate all missing bounding boxes for that object between the first and last frames in which it is detected. When adding boxes for an object, you can generally add a box every 5 frames and then interpolate the boxes between these.
-- `m` - enter MOVE mode - in this mode, you can click within an object bounding box and drag to shift the whole object by that offset.
+- `i` - enter INTERPOLATE mode  - clicking on a box for an object will interpolate all missing bounding boxes for that object between the first and last frames in which it is detected. When adding boxes for an object, you can generally add a box every 5-8 frames and then interpolate the boxes between these.
+- `m` - enter MOVE mode - in this mode, you can click within an object bounding box and drag to shift the whole object by that offset. If you press `2` in this mode, you can adjust all boxes for an object (in all subsequent frames) at the same time. Be careful as you cannot undo this operation so will instead have to attempt to perform the reverse operation to undo changes.
 - right click twice within a box - realigns the object edges with the vanishing points, should be done after significantly moving or modifying a box.
 - `k` - enter KEYFRAME mode - whenever you enter keyframe mode, you select an easily recognizable point on an object. Then, you subsequently select that point on the same object in different frames, and the box from the first frame is offset in the current frame according to the selected point. This is useful because you can fit one 3D box to an object well, and then copy and shift it to several subsequent frames before having to redraw it.
  
