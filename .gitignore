@@ -12,3 +12,5 @@ manual_annotator_2D_from_PC.py
 *.mp4
 
 DATA/labels/
+
+*.avi

@@ -106,6 +106,7 @@ class Annotator_3D():
         frame_labels = {}
         self.known_heights = {}
         self.known_classes = {}
+        self.perfect_boxes = {}
         
         with open(self.label_path,"r") as f:
             read = csv.reader(f)
@@ -121,11 +122,15 @@ class Annotator_3D():
                     continue
                 
                 
-                if row[10] == "Manual":
+                
+                if row[10] in  ["Manual","Perfect"]:
                     if frame_idx not in frame_labels.keys():
                             frame_labels[frame_idx] = [row]
                     else:
                         frame_labels[frame_idx].append(row)
+                        
+                    if row[10] == "Perfect":
+                        self.perfect_boxes[int(row[2])] = frame_idx
                     continue
                             
                 if len(row[39]) == 0: # bad data row
@@ -236,7 +241,15 @@ class Annotator_3D():
                 if cls == "":
                     cls = self.known_classes[oidx]
                 bbox = np.array(box[11:27]).astype(float).astype(int) 
+                
                 color = self.colors[oidx%100000]
+                if oidx in self.perfect_boxes.keys():
+                    color = (30,100,30)
+                    if box[10] == "Perfect":
+                        color = (0,200,0)
+                else:
+                    color = (30,30,100)
+                
                 ts = 2
                 self.cur_frame = cv2.line(self.cur_frame,(bbox[0],bbox[1]),(bbox[2],bbox[3]),color,ts)
                 self.cur_frame = cv2.line(self.cur_frame,(bbox[6],bbox[7]),(bbox[2],bbox[3]),(0,255,0),2)
@@ -396,6 +409,29 @@ class Annotator_3D():
                     
                     break
     
+    
+    def toggle_perfect(self,obj_idx):
+        # sets box as perfect if not already perfect, otherwise removes perfect box
+        
+        if obj_idx in self.perfect_boxes:
+            perfect_frame_idx = self.perfect_boxes[obj_idx]
+            del self.perfect_boxes[obj_idx]
+            
+            for row in self.labels[perfect_frame_idx]:
+                if int(row[2]) == obj_idx:
+                    row[10] = "Manual"
+                    break
+        
+        else:
+            self.perfect_boxes[obj_idx] = self.frame_num
+            
+            for row in self.labels[self.frame_num]:
+                if int(row[2]) == obj_idx:
+                    row[10] = "Perfect"
+                    break
+
+        
+        print("Toggled perfect status on box for object {}".format(obj_idx))
     
     def reassign(self,old,new):
         """
@@ -1090,6 +1126,10 @@ class Annotator_3D():
                     obj_idx = self.find_box(self.new)
                     self.interpolate(obj_idx)  
                   
+                elif self.active_command == "PERFECT":
+                    obj_idx = self.find_box(self.new)
+                    self.toggle_perfect(obj_idx)  
+                    
                 self.label_buffer.append([self.frame_num,copy.deepcopy(self.labels[self.frame_num])])
                 if len(self.label_buffer) > 50:
                     self.label_buffer = self.label_buffer[1:]
@@ -1130,8 +1170,10 @@ class Annotator_3D():
            elif key == ord("s"):
                     frame_idx = int(self.keyboard_input())
                     self.skip_to(frame_idx)          
+           elif key == ord("p"):
+               self.active_command = "PERFECT"
            elif key == ord("i"):
-                    self.active_command = "INTERPOLATE"       
+               self.active_command = "INTERPOLATE"       
            elif key == ord("q"):
                 self.quit()
            elif key == ord("u"):
@@ -1159,8 +1201,8 @@ if __name__ == "__main__":
        
         
     except:
-        camera_id = "p1c4"
-        sequence_idx = 0
+        camera_id = "p1c2"
+        sequence_idx = 1
         
         
         # label_file = "/home/worklab/Data/dataset_alpha/rectified/rectified_{}_{}.csv".format(camera_id,sequence_idx)

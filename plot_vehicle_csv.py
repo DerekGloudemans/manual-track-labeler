@@ -203,11 +203,12 @@ def plot_vehicle_csv(
     # All data gathered from CSV
     if save:      
         outfile = "camera_{}_track_outputs_3D.mp4".format(camera)
-        if ds:
-            out = cv2.VideoWriter(outfile,cv2.VideoWriter_fourcc(*'mp4v'), frame_rate, (1920,1080))
-        else:
-            out = cv2.VideoWriter(outfile,cv2.VideoWriter_fourcc(*'mp4v'), frame_rate, (3840,2160))
-    
+        out = cv2.VideoWriter(outfile,cv2.VideoWriter_fourcc(*'mp4v'), frame_rate, (1920,1080))
+        # if ds:
+        #     out = cv2.VideoWriter(outfile,cv2.VideoWriter_fourcc(*'mp4v'), frame_rate, (1920,1080))
+        # else:
+        #     out = cv2.VideoWriter(outfile,cv2.VideoWriter_fourcc(*'mp4v'), frame_rate, (3840,2160))
+
     cap= cv2.VideoCapture(sequence)
     ret,frame = cap.read()
     frame_idx = 0
@@ -314,11 +315,12 @@ def plot_vehicle_csv(
             frame = cv2.putText(frame,"Rectified 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),5)    
             frame = cv2.putText(frame,"Rectified 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(255,0,0),3)    
             
-        if ds:
-            frame = cv2.resize(frame,(1920,1080))
+        frame = cv2.resize(frame,(1920,1080))
     
         cv2.imshow("frame",frame)
         
+        if save:
+            out.write(frame.astype(np.uint8))
         
         if frame_rate == 0:
             key = cv2.waitKey(0)
@@ -327,8 +329,7 @@ def plot_vehicle_csv(
         if key == ord('q') or frame_idx > 1800:
             break
         
-        if save:
-            out.write(frame)
+       
         
         # get next frame
         ret,frame = cap.read()
@@ -362,7 +363,6 @@ if __name__ == "__main__":
         parser.add_argument("--ds",action = "store_true")
 
 
-
         args = parser.parse_args()
         sequence = args.video_path
         csv_file = args.csv_path
@@ -377,16 +377,17 @@ if __name__ == "__main__":
         
      except:
          print("No path specified, using default paths and settings instead")
-         show_2d = False
-         show_3d = True
-         show_LMCS = True
+         show_2d = True
+         show_3d = False
+         show_LMCS = False
          show_rectified = False
-         save = False
+         save = True
          frame_rate = 10
          ds = False
         
-         csv_file = "/home/worklab/Data/dataset_alpha/rectified/rectified_p1c3_0_track_outputs_3D.csv"
-         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c3_0.mp4"
+         #csv_file = "/home/worklab/Data/dataset_alpha/rectified/rectified_p1c2_1_track_outputs_3D.csv"
+         csv_file = "/home/worklab/Documents/derek/i24-dataset-gen/DATA/labels/rectified_p1c2_1_track_outputs_3D.csv"
+         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c2_1.mp4"
          #csv_file = "/home/worklab/Data/dataset_alpha/trial/p1c1_2_track_outputs_3D.csv"
          #sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c1_2.mp4"
     
