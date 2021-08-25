@@ -72,7 +72,7 @@ where `<camera_name>` is p1c1 or similar, and `<sequence_idx>` is an integer bet
 - `m` - enter MOVE mode - in this mode, you can click within an object bounding box and drag to shift the whole object by that offset. If you press `2` in this mode, you can adjust all boxes for an object (in all subsequent frames) at the same time. Be careful as you cannot undo this operation so will instead have to attempt to perform the reverse operation to undo changes.
 - right click twice within a box - realigns the object edges with the vanishing points, should be done after significantly moving or modifying a box.
 - `k` - enter KEYFRAME mode - whenever you enter keyframe mode, you select an easily recognizable point on an object. Then, you subsequently select that point on the same object in different frames, and the box from the first frame is offset in the current frame according to the selected point. This is useful because you can fit one 3D box to an object well, and then copy and shift it to several subsequent frames before having to redraw it.
- 
+- `gf` - enter GUESS FROM 2D - clicking on an object shifts 3D boxes in all subsequent frames for that object to the center of the object's 2D bounding boxes, which in many/most cases will be quite accurate.
 # Ignore the rest, it is not relevant at this time!
 
 # Hear ye Hear ye (labelers skip to next section please)
