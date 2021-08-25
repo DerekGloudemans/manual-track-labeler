@@ -378,16 +378,16 @@ if __name__ == "__main__":
      except:
          print("No path specified, using default paths and settings instead")
          show_2d = True
-         show_3d = False
-         show_LMCS = False
+         show_3d = True
+         show_LMCS = True
          show_rectified = False
-         save = True
-         frame_rate = 10
+         save = False
+         frame_rate = 7
          ds = False
         
          #csv_file = "/home/worklab/Data/dataset_alpha/rectified/rectified_p1c2_1_track_outputs_3D.csv"
-         csv_file = "/home/worklab/Documents/derek/i24-dataset-gen/DATA/labels/rectified_p1c2_1_track_outputs_3D.csv"
-         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c2_1.mp4"
+         csv_file = "/home/worklab/Documents/derek/i24-dataset-gen/DATA/labels/rectified_p1c2_2_track_outputs_3D_0824.csv"
+         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c2_2.mp4"
          #csv_file = "/home/worklab/Data/dataset_alpha/trial/p1c1_2_track_outputs_3D.csv"
          #sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c1_2.mp4"
     

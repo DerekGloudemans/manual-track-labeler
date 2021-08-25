@@ -262,7 +262,12 @@ class Annotator_3D():
                 miny = np.min(bbox[1::2])
                 label = "{} {}".format(cls,oidx)
                 self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(int(minx),int(miny - 10)),cv2.FONT_HERSHEY_PLAIN,1,(0,0,0),3)
-                self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(int(minx),int(miny - 10)),cv2.FONT_HERSHEY_PLAIN,1,(255,255,255),1)
+                self.cur_frame = cv2.putText(self.cur_frame,"{}".format(label),(int(minx),int(miny - 10)),cv2.FONT_HERSHEY_PLAIN,1,(255,255,255),1)\
+                
+                
+                box = np.array(box[4:8]).astype(float).astype(int)
+                self.cur_frame = cv2.rectangle(self.cur_frame,(int(box[0]),int(box[1])),(int(box[2]),int(box[3])),color,1)
+                    
             except:
                 pass
             # vanishing points
@@ -540,6 +545,39 @@ class Annotator_3D():
                 
                 #print("Realigned object {} in frame {}".format(obj_idx,target_frame_num))
         
+    def guess_from_2D(self,obj_idx):
+        """ 
+        For the given object, adjust all subsequent frame boxes such that the box center is aligned with the 2D bbox center
+        """
+        frames_to_adjust = [j for j in range(self.frame_num,self.frame_num + 400)]
+        for frame_idx in frames_to_adjust:
+            
+            #self.realign(obj_idx,frame_idx)
+
+            for row in self.labels[frame_idx]:
+                if int(row[2]) == obj_idx:
+                    bbox = np.array(row[11:27]).astype(float)
+                    
+                    bb2d = np.array(row[4:8]).astype(float)
+                    
+                    # get 3D center
+                    x3d = np.average(bbox[::2])
+                    y3d = np.average(bbox[1::2])
+                    
+                    #x3d = (bbox[0] + bbox[2] + bbox[4] + bbox[6])/4.0
+                    #y3d = (bbox[1] + bbox[3] + bbox[5] + bbox[7])/4.0
+                    
+                    x2d = np.average(bb2d[::2])
+                    y2d = np.average(bb2d[1::2])
+                    
+                    dx = x2d - x3d
+                    dy = y2d - y3d
+                    
+                    bbox[::2] += dx
+                    bbox[1::2] += dy
+                         
+                    row[11:27] = bbox
+                    
     
     def redraw(self,obj_idx,disp):
         """
@@ -736,7 +774,7 @@ class Annotator_3D():
                     break
              
             #self.realign(obj_idx, self.frame_num)
-            print("Redrew box {} for frame {}".format(obj_idx,frame_idx))
+            #print("Redrew box {} for frame {}".format(obj_idx,frame_idx))
         
     
     def undo(self):
@@ -1085,6 +1123,9 @@ class Annotator_3D():
                     #self.new *= 2
                     self.keyframe(obj_idx,self.new)
                     
+                elif self.active_command == "GUESS FROM 2D":
+                    obj_idx = self.find_box(self.new)
+                    self.guess_from_2D(obj_idx)  
         
                 elif self.active_command == "INTERPOLATE":
                     obj_idx = self.find_box(self.new)
@@ -1124,6 +1165,8 @@ class Annotator_3D():
            elif key == ord("m"):
                 self.active_command = "MOVE"
                 self.adjust_all = 0
+           elif key == ord("g"):
+               self.active_command = "GUESS FROM 2D"
            elif key == ord("k"):
                self.keyframe_point = None
                self.active_command = "KEYFRAME"
@@ -1159,7 +1202,7 @@ if __name__ == "__main__":
        
         
     except:
-        camera_id = "p1c4"
+        camera_id = "p1c5"
         sequence_idx = 0
         
         
