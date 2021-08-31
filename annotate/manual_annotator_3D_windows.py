@@ -115,6 +115,9 @@ class Annotator_3D():
                     HEADERS = False
                     continue
                 
+                elif len(row) == 0:
+                    continue 
+                
                 frame_idx = int(row[0])
                 camera = row[36]
                 if camera != self.camera_name:
@@ -556,9 +559,13 @@ class Annotator_3D():
 
             for row in self.labels[frame_idx]:
                 if int(row[2]) == obj_idx:
-                    bbox = np.array(row[11:27]).astype(float)
+                    try:
+                        bbox = np.array(row[11:27]).astype(float)
                     
-                    bb2d = np.array(row[4:8]).astype(float)
+                        bb2d = np.array(row[4:8]).astype(float)
+                    except:
+                        print("No 2D, could not guess offsets for obj {}".format(obj_idx))
+                        return
                     
                     # get 3D center
                     x3d = np.average(bbox[::2])
@@ -577,7 +584,7 @@ class Annotator_3D():
                     bbox[1::2] += dy
                          
                     row[11:27] = bbox
-                    
+                    row[10] = "Manual"
     
     def redraw(self,obj_idx,disp):
         """
@@ -1202,7 +1209,7 @@ if __name__ == "__main__":
        
         
     except:
-        camera_id = "p2c5"
+        camera_id = "p1c6"
         sequence_idx = 0
         
         
