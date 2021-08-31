@@ -14,3 +14,4 @@ manual_annotator_2D_from_PC.py
 DATA/labels/
 
 *.avi
+annotate/__pycache__/vp_utils.cpython-36.pyc
