@@ -19,7 +19,7 @@ class Annotator_3D():
         """
         
         self.sequence_path = sequence
-        self.sequence_short_name = sequence.split("/")[-1].split(".mp4")[0]
+        self.sequence_short_name = sequence.split("\\")[-1].split(".mp4")[0]
         self.camera_name = self.sequence_short_name.split("_")[0]
         
         self.label_path = label_file
@@ -114,6 +114,9 @@ class Annotator_3D():
                 if HEADERS:
                     HEADERS = False
                     continue
+                
+                elif len(row) == 0:
+                    continue 
                 
                 frame_idx = int(row[0])
                 camera = row[36]
@@ -558,30 +561,11 @@ class Annotator_3D():
                 if int(row[2]) == obj_idx:
                     try:
                         bbox = np.array(row[11:27]).astype(float)
-                        
-                        bb2d = np.array(row[4:8]).astype(float)
-                        
-                        # get 3D center
-                        x3d = np.average(bbox[::2])
-                        y3d = np.average(bbox[1::2])
-                        
-                        #x3d = (bbox[0] + bbox[2] + bbox[4] + bbox[6])/4.0
-                        #y3d = (bbox[1] + bbox[3] + bbox[5] + bbox[7])/4.0
-                        
-                        x2d = np.average(bb2d[::2])
-                        y2d = np.average(bb2d[1::2])
-                        
-                        dx = x2d - x3d
-                        dy = y2d - y3d
-                        
-                        bbox[::2] += dx
-                        bbox[1::2] += dy
-                             
-                        row[11:27] = bbox
-                    except:
-                        pass
                     
-                    bb2d = np.array(row[4:8]).astype(float)
+                        bb2d = np.array(row[4:8]).astype(float)
+                    except:
+                        print("No 2D, could not guess offsets for obj {}".format(obj_idx))
+                        return
                     
                     # get 3D center
                     x3d = np.average(bbox[::2])
@@ -600,7 +584,7 @@ class Annotator_3D():
                     bbox[1::2] += dy
                          
                     row[11:27] = bbox
-                    
+                    row[10] = "Manual"
     
     def redraw(self,obj_idx,disp):
         """
@@ -1225,7 +1209,7 @@ if __name__ == "__main__":
        
         
     except:
-        camera_id = "p2c2"
+        camera_id = "p1c6"
         sequence_idx = 0
         
         
@@ -1235,10 +1219,18 @@ if __name__ == "__main__":
         # tf_file    = "/home/worklab/Data/dataset_alpha/tform/{}_im_lmcs_transform_points.csv".format(camera_id)
     
     d = os.path.dirname(os.getcwd())
+    
+    # for linux
     label_file = "{}/DATA/labels/rectified_{}_{}_track_outputs_3D.csv".format(d,camera_id,sequence_idx)
     video      = "{}/DATA/video/{}_{}.mp4".format(d,camera_id,sequence_idx)
     vp_file    = "{}/DATA/vp/{}_axes.csv".format(d,camera_id)
     tf_file    = "{}/DATA/tform/{}_im_lmcs_transform_points.csv".format(d,camera_id)
+    
+    # for windows
+    label_file = "{}\\DATA\\labels\\rectified_{}_{}_track_outputs_3D.csv".format(d,camera_id,sequence_idx)
+    video      = "{}\\DATA\\video\\{}_{}.mp4".format(d,camera_id,sequence_idx)
+    vp_file    = "{}\\DATA\\vp\\{}_axes.csv".format(d,camera_id)
+    tf_file    = "{}\\DATA\\tform\\{}_im_lmcs_transform_points.csv".format(d,camera_id)
     
     ann = Annotator_3D(video,label_file,tf_file,vp_file, load_corrected = True)
     ann.run()
