@@ -556,27 +556,30 @@ class Annotator_3D():
 
             for row in self.labels[frame_idx]:
                 if int(row[2]) == obj_idx:
-                    bbox = np.array(row[11:27]).astype(float)
-                    
-                    bb2d = np.array(row[4:8]).astype(float)
-                    
-                    # get 3D center
-                    x3d = np.average(bbox[::2])
-                    y3d = np.average(bbox[1::2])
-                    
-                    #x3d = (bbox[0] + bbox[2] + bbox[4] + bbox[6])/4.0
-                    #y3d = (bbox[1] + bbox[3] + bbox[5] + bbox[7])/4.0
-                    
-                    x2d = np.average(bb2d[::2])
-                    y2d = np.average(bb2d[1::2])
-                    
-                    dx = x2d - x3d
-                    dy = y2d - y3d
-                    
-                    bbox[::2] += dx
-                    bbox[1::2] += dy
-                         
-                    row[11:27] = bbox
+                    try:
+                        bbox = np.array(row[11:27]).astype(float)
+                        
+                        bb2d = np.array(row[4:8]).astype(float)
+                        
+                        # get 3D center
+                        x3d = np.average(bbox[::2])
+                        y3d = np.average(bbox[1::2])
+                        
+                        #x3d = (bbox[0] + bbox[2] + bbox[4] + bbox[6])/4.0
+                        #y3d = (bbox[1] + bbox[3] + bbox[5] + bbox[7])/4.0
+                        
+                        x2d = np.average(bb2d[::2])
+                        y2d = np.average(bb2d[1::2])
+                        
+                        dx = x2d - x3d
+                        dy = y2d - y3d
+                        
+                        bbox[::2] += dx
+                        bbox[1::2] += dy
+                             
+                        row[11:27] = bbox
+                    except:
+                        pass
                     
     
     def redraw(self,obj_idx,disp):
@@ -1202,7 +1205,7 @@ if __name__ == "__main__":
        
         
     except:
-        camera_id = "p1c5"
+        camera_id = "p2c2"
         sequence_idx = 0
         
         

@@ -254,35 +254,38 @@ def plot_vehicle_csv(
                 
                 if show_2d:
                     frame = cv2.rectangle(frame,(int(bbox_2d[0]),int(bbox_2d[1])),(int(bbox_2d[2]),int(bbox_2d[3])),color,1)
-                    
-                color = (0,255,255)
-                if interp:
-                    color = (0,100,255)
-                if show_3d:
-                    for a in range(len(bbox_3d)):
-                        ab = bbox_3d[a]
-                        for b in range(a,len(bbox_3d)):
-                            bb = bbox_3d[b]
-                            if DRAW[a][b] == 1:
-                                frame = cv2.line(frame,(int(ab[0]),int(ab[1])),(int(bb[0]),int(bb[1])),color,1)
-               
-                color = (0,255,0)             
-                if show_LMCS:
-                    for a in range(len(bbox_lmcs)):
-                        ab = bbox_lmcs[a]
-                        for b in range(len(bbox_lmcs)):
-                            bb = bbox_lmcs[b]   
-                            if DRAW_BASE[a][b] == 1 or DRAW_BASE[b][a] == 1:
-                                frame = cv2.line(frame,(int(ab[0]),int(ab[1])),(int(bb[0]),int(bb[1])),color,1)
                 
-                color = (255,0,0)
-                if show_rectified:
-                    for a in range(len(bbox_rectified)):
-                        ab = bbox_rectified[a]
-                        for b in range(a,len(bbox_rectified)):
-                            bb = bbox_rectified[b]
-                            if DRAW[a][b] == 1:
-                                frame = cv2.line(frame,(int(ab[0]),int(ab[1])),(int(bb[0]),int(bb[1])),color,2)
+                try:
+                    color = (0,255,255)
+                    if interp:
+                        color = (0,100,255)
+                    if show_3d:
+                        for a in range(len(bbox_3d)):
+                            ab = bbox_3d[a]
+                            for b in range(a,len(bbox_3d)):
+                                bb = bbox_3d[b]
+                                if DRAW[a][b] == 1:
+                                    frame = cv2.line(frame,(int(ab[0]),int(ab[1])),(int(bb[0]),int(bb[1])),color,1)
+                   
+                    color = (0,255,0)             
+                    if show_LMCS:
+                        for a in range(len(bbox_lmcs)):
+                            ab = bbox_lmcs[a]
+                            for b in range(len(bbox_lmcs)):
+                                bb = bbox_lmcs[b]   
+                                if DRAW_BASE[a][b] == 1 or DRAW_BASE[b][a] == 1:
+                                    frame = cv2.line(frame,(int(ab[0]),int(ab[1])),(int(bb[0]),int(bb[1])),color,1)
+                    
+                    color = (255,0,0)
+                    if show_rectified:
+                        for a in range(len(bbox_rectified)):
+                            ab = bbox_rectified[a]
+                            for b in range(a,len(bbox_rectified)):
+                                bb = bbox_rectified[b]
+                                if DRAW[a][b] == 1:
+                                    frame = cv2.line(frame,(int(ab[0]),int(ab[1])),(int(bb[0]),int(bb[1])),color,2)
+                except:
+                    pass
                                 
                 
                 label = "{} {}".format(cls,id)
@@ -386,8 +389,12 @@ if __name__ == "__main__":
          ds = False
         
          #csv_file = "/home/worklab/Data/dataset_alpha/rectified/rectified_p1c2_1_track_outputs_3D.csv"
-         csv_file = "/home/worklab/Documents/derek/i24-dataset-gen/DATA/labels/rectified_p1c2_2_track_outputs_3D_0824.csv"
-         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c2_2.mp4"
+         csv_file = "/home/worklab/Documents/derek/i24-dataset-gen/DATA/labels/rectified_p2c4_0_track_outputs_3D.csv"
+         
+         csv_file = "/home/worklab/Desktop/data_port/FOR ANNOTATORS/rectified_p1c2_0_track_outputs_3D.csv"
+         csv_file = "/home/worklab/Desktop/data_port/combined/rectified_p1c2_0_track_outputs_3D.csv"
+
+         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c2_0.mp4"
          #csv_file = "/home/worklab/Data/dataset_alpha/trial/p1c1_2_track_outputs_3D.csv"
          #sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c1_2.mp4"
     
