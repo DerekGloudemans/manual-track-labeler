@@ -600,6 +600,7 @@ class Annotator_3D():
                     bbox[1::2] += dy
                          
                     row[11:27] = bbox
+                    row[10] = "Manual"
                     
     
     def redraw(self,obj_idx,disp):
