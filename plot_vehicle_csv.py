@@ -394,7 +394,8 @@ if __name__ == "__main__":
          csv_file = "/home/worklab/Desktop/data_port/FOR ANNOTATORS/rectified_p1c2_0_track_outputs_3D.csv"
          csv_file = "/home/worklab/Desktop/data_port/combined/rectified_p1c2_0_track_outputs_3D.csv"
 
-         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c2_0.mp4"
+         sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c6_0.mp4"
+         csv_file = "/home/worklab/Desktop/data_port/combined/rectified_p1c6_0_track_outputs_3D.csv"
          #csv_file = "/home/worklab/Data/dataset_alpha/trial/p1c1_2_track_outputs_3D.csv"
          #sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c1_2.mp4"
     

@@ -1226,7 +1226,7 @@ if __name__ == "__main__":
        
         
     except:
-        camera_id = "p2c2"
+        camera_id = "p2c4"
         sequence_idx = 0
         
         

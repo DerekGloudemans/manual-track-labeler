@@ -35,7 +35,13 @@ def combine_csvs(file1,file2,cutoff_frame = 0):
             out_rows.append(row)
             if len(row) > 0 and row[0] == "Frame #":
                 HEADERS = False
+        
+        
         else:
+            
+            if len(row) == 0:
+                continue
+            
             if int(row[0]) < cutoff_frame:
                 out_rows.append(row)
             else:
@@ -74,7 +80,7 @@ def combine_csvs(file1,file2,cutoff_frame = 0):
 
 if __name__ == "__main__":
     
-    cutoff_frame = 1000
-    manual =    "/home/worklab/Desktop/data_port/FOR ANNOTATORS/rectified_p1c5_0_track_outputs_3D.csv"
-    rectified = "/home/worklab/Desktop/data_port/Rectified_3D/rectified_p1c5_0_track_outputs_3D.csv"
+    cutoff_frame = 400
+    manual =    "/home/worklab/Desktop/data_port/FOR ANNOTATORS/rectified_p1c6_0_track_outputs_3D.csv"
+    rectified = "/home/worklab/Desktop/data_port/Rectified_3D/rectified_p1c6_0_track_outputs_3D.csv"
     combine_csvs(manual,rectified,cutoff_frame)
