@@ -4,7 +4,7 @@ import numpy as np
 import math
 from itertools import permutations
 from scipy.spatial import ConvexHull
-#from skimage.measure import label as sk_label
+from skimage.measure import label as sk_label
 import matplotlib.pyplot as plt
 
 # define a global color

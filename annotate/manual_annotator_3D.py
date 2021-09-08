@@ -191,7 +191,10 @@ class Annotator_3D():
                 
                 
         self.labels = frame_labels
-        self.label_buffer = [[self.frame_num,copy.deepcopy(frame_labels[self.frame_num])]]
+        try:
+            self.label_buffer = [[self.frame_num,copy.deepcopy(frame_labels[self.frame_num])]]
+        except:
+            self.label_buffer = [[self.frame_num,[]]]
         
         for i in range(self.length):
             if i not in self.labels.keys():
@@ -1226,7 +1229,7 @@ if __name__ == "__main__":
        
         
     except:
-        camera_id = "p2c4"
+        camera_id = "p3c1"
         sequence_idx = 0
         
         
