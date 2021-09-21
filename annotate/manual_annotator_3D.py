@@ -1176,8 +1176,7 @@ class Annotator_3D():
            if key == ord('9'):
                 self.next()
            elif key == ord('8'):
-                self.prev()
-           
+                self.prev()           
            elif key == ord('d'):
                 self.active_command = "DELETE"
            elif key == ord("r"):

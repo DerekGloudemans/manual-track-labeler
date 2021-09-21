@@ -11,8 +11,6 @@ import time
     
     
 def combine_csvs(file1,file2,cutoff_frame = 0):
-    interp_f = 20
-    
     
     short_name = file1.split("/")[-1]
     HEADERS = True

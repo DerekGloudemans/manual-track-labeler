@@ -1,4 +1,5 @@
 import csv
+import re
 import numpy as np
 import multiprocessing as mp
 import cv2
@@ -15,7 +16,9 @@ def plot_vehicle_csv(
         show_LMCS = False,
         show_rectified = False,
         save = False,
-        ds = False
+        ds = False,
+        big_label = False,
+        BOI = []
         ):
         
     
@@ -52,12 +55,10 @@ def plot_vehicle_csv(
                     }
     
     # get the camera id - only these boxes will be parsed from the data file
-    camera_id = sequence.split("/")[-1].split("_")[0]
-    if camera_id[0] != "p":
-        camera_id = sequence.split("/")[-1].split("_")[1]
-        if camera_id[0] != "p":
-            print("Check sequence naming, cannot find camera id")
-            return
+    camera_id = re.search("p\dc\d",sequence).group(0)
+    if len(camera_id) == 0:
+        print("Check sequence naming, cannot find camera id")
+        return
     relevant_camera = camera_id
     
     # load LMCS -> im space homography matrix
@@ -188,16 +189,21 @@ def plot_vehicle_csv(
                 im_top[:,1] -= est_height
                 rectified_bbox_3d = np.array(list(re_footprint.reshape(-1)) + list(im_top.reshape(-1)) )
                 rectified_bbox_3d = rectified_bbox_3d.reshape(8,2)
-            
+                
+                try:
+                    state =np.array([row[39],row[40],row[43],row[42],row[44],row[35],row[38]]).astype(float)
+                except:
+                    state = np.zeros(6)
+                    
             else:
                 rectified_bbox_3d = np.zeros([8,2])
                     
                     
                 
             if frame_idx in all_frame_data.keys():
-                all_frame_data[frame_idx].append([id,bbox_2d,bbox_3d,im_footprint,rectified_bbox_3d,interp])
+                all_frame_data[frame_idx].append([id,bbox_2d,bbox_3d,im_footprint,rectified_bbox_3d,interp,state])
             else:
-                all_frame_data[frame_idx] = [[id,bbox_2d,bbox_3d,im_footprint,rectified_bbox_3d,interp]]
+                all_frame_data[frame_idx] = [[id,bbox_2d,bbox_3d,im_footprint,rectified_bbox_3d,interp,state]]
                                 
             
     # All data gathered from CSV
@@ -216,7 +222,13 @@ def plot_vehicle_csv(
     while ret:        
         
         if frame_idx in all_frame_data.keys():
+            
+            if big_label:
+                im2 = frame.copy()
+
+                
             for box in all_frame_data[frame_idx]:
+                
                 
                 # plot each box
                 id              = box[0]
@@ -225,6 +237,21 @@ def plot_vehicle_csv(
                 bbox_lmcs       = box[3]
                 bbox_rectified  = box[4]
                 interp          = box[5]
+                state           = box[6]
+                
+                if big_label:
+                    speed           = state[6] * 3600/5280
+                    direction = "EB" if state[5] == 1 else "WB"
+                    try:
+                        length = float(state[2])
+                        width  = float(state[3])
+                        height = float(state[4])
+                    except:
+                        length = 0
+                        width  = 0
+                        height = 0
+                    
+                
                 try:
                     cls = obj_cls[id]
                 except:
@@ -251,7 +278,6 @@ def plot_vehicle_csv(
         
         
                 color = (0,0,255)
-                
                 if show_2d:
                     frame = cv2.rectangle(frame,(int(bbox_2d[0]),int(bbox_2d[1])),(int(bbox_2d[2]),int(bbox_2d[3])),color,1)
                 
@@ -259,13 +285,16 @@ def plot_vehicle_csv(
                     color = (0,255,255)
                     if interp:
                         color = (0,100,255)
+                    if id in BOI:
+                        color = (150,255,0)
+                    
                     if show_3d:
                         for a in range(len(bbox_3d)):
                             ab = bbox_3d[a]
                             for b in range(a,len(bbox_3d)):
                                 bb = bbox_3d[b]
                                 if DRAW[a][b] == 1:
-                                    frame = cv2.line(frame,(int(ab[0]),int(ab[1])),(int(bb[0]),int(bb[1])),color,1)
+                                    frame = cv2.line(frame,(int(ab[0]),int(ab[1])),(int(bb[0]),int(bb[1])),color,2)
                    
                     color = (0,255,0)             
                     if show_LMCS:
@@ -283,40 +312,72 @@ def plot_vehicle_csv(
                             for b in range(a,len(bbox_rectified)):
                                 bb = bbox_rectified[b]
                                 if DRAW[a][b] == 1:
-                                    frame = cv2.line(frame,(int(ab[0]),int(ab[1])),(int(bb[0]),int(bb[1])),color,2)
+                                    frame = cv2.line(frame,(int(ab[0]),int(ab[1])),(int(bb[0]),int(bb[1])),color,1)
                 except:
                     pass
                                 
+                if big_label:
+                    label = "{} {}:".format(cls,id)          
+                    label2 = "{:.1f}mph {}".format(speed,direction)   
+                    label3 = "L: {:.1f}ft".format(length)
+                    label4 = "W: {:.1f}ft".format(width)
+                    label5 = "H: {:.1f}ft".format(height)
+                    
+                    full_label = [label,label2,label3,label4,label5]                    
+                    longest_label = max([item for item in full_label],key = len)
+                    
+                    text_size = 0.8
+                    t_size = cv2.getTextSize(longest_label, cv2.FONT_HERSHEY_PLAIN,text_size , 1)[0]
+        
+                    # find minx and maxy 
+                    minx = bbox_2d[0]
+                    maxy = bbox_2d[3]
+                    
+                    c1 = (int(minx),int(maxy)) 
+                    c2 = int(c1[0] + t_size[0] + 10), int(c1[1] + len(full_label)*(t_size[1] +4)) 
+                    cv2.rectangle(im2, c1, c2,(255,255,255), -1)
+                    
+                    offset = t_size[1] + 4
+                    for label in full_label:
+                        c1 = c1[0],c1[1] + offset
+                        cv2.putText(frame, label, c1, cv2.FONT_HERSHEY_PLAIN,text_size, [0,0,0], 1)
+                        cv2.putText(im2, label, c1, cv2.FONT_HERSHEY_PLAIN,text_size, [0,0,0], 1)
+        
                 
-                label = "{} {}".format(cls,id)
-                left = bbox_2d[0]
-                top  = bbox_2d[1]
-                frame = cv2.putText(frame,"{}".format(label),(int(left),int(top - 10)),cv2.FONT_HERSHEY_PLAIN,1,(0,0,0),3)
-                frame = cv2.putText(frame,"{}".format(label),(int(left),int(top - 10)),cv2.FONT_HERSHEY_PLAIN,1,(255,255,255),1)
+                    
+                else:
+                    label = "{} {}".format(cls,id)
+                    left = bbox_2d[0]
+                    top  = bbox_2d[1]
+                    frame = cv2.putText(frame,"{}".format(label),(int(left),int(top - 10)),cv2.FONT_HERSHEY_PLAIN,1,(0,0,0),3)
+                    frame = cv2.putText(frame,"{}".format(label),(int(left),int(top - 10)),cv2.FONT_HERSHEY_PLAIN,1,(255,255,255),1)
 
+        if big_label:
+            frame = cv2.addWeighted(frame,0.6,im2,0.4,0)
           
         #frame = cv2.resize(frame,(1920,1080))
-        y_offset = 50
-        if show_2d:
-            frame = cv2.putText(frame,"2D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),5)
-            frame = cv2.putText(frame,"2D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,0,255),3)
-            y_offset += 30
-            
-        if show_3d:
-            frame = cv2.putText(frame,"Auto 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,0,0),5)
-            frame = cv2.putText(frame,"Auto 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,255,255),3)
-            y_offset += 30
-            frame = cv2.putText(frame,"Interpolated 3D",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,0,0),5)
-            frame = cv2.putText(frame,"Interpolated 3D",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,100,255),3)
-            y_offset += 30
-            
-        if show_LMCS:
-            frame = cv2.putText(frame,"3D footprint double projected",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,0,0),5)
-            frame = cv2.putText(frame,"3D footprint double projected",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,255,0),3)
-            y_offset += 30
-        if show_rectified:
-            frame = cv2.putText(frame,"Rectified 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),5)    
-            frame = cv2.putText(frame,"Rectified 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(255,0,0),3)    
+        if not big_label:
+            y_offset = 50
+            if show_2d:
+                frame = cv2.putText(frame,"2D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),5)
+                frame = cv2.putText(frame,"2D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,0,255),3)
+                y_offset += 30
+                
+            if show_3d:
+                frame = cv2.putText(frame,"Auto 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,0,0),5)
+                frame = cv2.putText(frame,"Auto 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,255,255),3)
+                y_offset += 30
+                frame = cv2.putText(frame,"Interpolated 3D",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,0,0),5)
+                frame = cv2.putText(frame,"Interpolated 3D",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,100,255),3)
+                y_offset += 30
+                
+            if show_LMCS:
+                frame = cv2.putText(frame,"3D footprint double projected",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,0,0),5)
+                frame = cv2.putText(frame,"3D footprint double projected",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(0,255,0),3)
+                y_offset += 30
+            if show_rectified:
+                frame = cv2.putText(frame,"Rectified 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(255,255,255),5)    
+                frame = cv2.putText(frame,"Rectified 3D bbox",(10,y_offset),cv2.FONT_HERSHEY_PLAIN,2,(255,0,0),3)    
             
         frame = cv2.resize(frame,(1920,1080))
     
@@ -329,9 +390,10 @@ def plot_vehicle_csv(
             key = cv2.waitKey(0)
         else:
             key = cv2.waitKey(int(1000/float(frame_rate)))
-        if key == ord('q') or frame_idx > 1800:
+        if key == ord('q'):
             break
-        
+        elif key == ord("p"):
+            cv2.waitKey(0)
        
         
         # get next frame
@@ -380,12 +442,12 @@ if __name__ == "__main__":
         
      except:
          print("No path specified, using default paths and settings instead")
-         show_2d = True
+         show_2d = False
          show_3d = True
          show_LMCS = True
          show_rectified = False
-         save = False
-         frame_rate = 7
+         save = True
+         frame_rate = 30
          ds = False
         
          #csv_file = "/home/worklab/Data/dataset_alpha/rectified/rectified_p1c2_1_track_outputs_3D.csv"
@@ -399,5 +461,8 @@ if __name__ == "__main__":
          #csv_file = "/home/worklab/Data/dataset_alpha/trial/p1c1_2_track_outputs_3D.csv"
          #sequence = "/home/worklab/Data/cv/video/ground_truth_video_06162021/segments/p1c1_2.mp4"
     
+         sequence = "/home/worklab/Data/cv/video/08_06_2021/record_51_p1c2_00000.mp4"
+         csv_file = "/home/worklab/Documents/derek/3D-playground/_outputs/record_51_p1c2_00000_3D_track_outputs.csv"
+         BOI = [1244,1279,1333,1375,1437,1536,1578,1608,1669,1714,1782]
     
-     plot_vehicle_csv(sequence,csv_file,frame_rate = frame_rate,show_2d = show_2d,show_3d = show_3d,show_LMCS = show_LMCS,show_rectified = show_rectified, save = save,ds=ds)
+     plot_vehicle_csv(sequence,csv_file,frame_rate = frame_rate,show_2d = show_2d,show_3d = show_3d,show_LMCS = show_LMCS,show_rectified = show_rectified, save = save,ds=ds,big_label = True,BOI = BOI)
