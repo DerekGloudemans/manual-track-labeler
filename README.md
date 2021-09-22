@@ -124,6 +124,7 @@ If it shall be unto you to use this repository, know ye this: the following colu
 41. theta	
 42. width	
 43. length	
+44. height
 
 ## Included files
 - `manual_annotator_2D.py` -  for correcting 2D object tracking data
