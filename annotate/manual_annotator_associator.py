@@ -21,11 +21,11 @@ class Annotator_2D():
         
         self.sequence1_path = sequence1
         self.sequence1_short_name = sequence1.split("/")[-1].split(".mp4")[0]
-        self.label_path1 = os.path.join(label_dir,"track_corrected_unique", self.sequence1_short_name + "_track_outputs_corrected.csv")
+        self.label_path1 = os.path.join(label_dir,self.sequence1_short_name + "_track_outputs_corrected.csv")
         
         self.sequence2_path = sequence2
         self.sequence2_short_name = sequence2.split("/")[-1].split(".mp4")[0]
-        self.label_path2 = os.path.join(label_dir,"track_corrected_unique", self.sequence2_short_name + "_track_outputs_corrected.csv")
+        self.label_path2 = os.path.join(label_dir,self.sequence2_short_name + "_track_outputs_corrected.csv")
         
         self.ds = ds
         self.plot_ds = 3
@@ -150,16 +150,19 @@ class Annotator_2D():
         frame_b_boxes = {}
         
         for box in cur_frame_objs:
-            cls = box[3]
-            oidx = int(box[2])
-            bbox = np.array(box[4:8]).astype(float).astype(int)
-            color = self.colors[oidx%100000]
-            frame_a_boxes[oidx] = bbox
-            
-            label = "{} {}".format(cls,oidx)
-            self.cur_frame1 = cv2.rectangle(self.cur_frame1,(bbox[0],bbox[1]),(bbox[2],bbox[3]),color,2)
-            self.cur_frame1 = cv2.putText(self.cur_frame1,"{}".format(label),(int(bbox[0]),int(bbox[1] - 10)),cv2.FONT_HERSHEY_PLAIN,4,(0,0,0),7)
-            self.cur_frame1 = cv2.putText(self.cur_frame1,"{}".format(label),(int(bbox[0]),int(bbox[1] - 10)),cv2.FONT_HERSHEY_PLAIN,4,(255,255,255),3)
+            try:
+                cls = box[3]
+                oidx = int(box[2])
+                bbox = np.array(box[4:8]).astype(float).astype(int)
+                color = self.colors[oidx%100000]
+                frame_a_boxes[oidx] = bbox
+                
+                label = "{} {}".format(cls,oidx)
+                self.cur_frame1 = cv2.rectangle(self.cur_frame1,(bbox[0],bbox[1]),(bbox[2],bbox[3]),color,2)
+                self.cur_frame1 = cv2.putText(self.cur_frame1,"{}".format(label),(int(bbox[0]),int(bbox[1] - 10)),cv2.FONT_HERSHEY_PLAIN,4,(0,0,0),7)
+                self.cur_frame1 = cv2.putText(self.cur_frame1,"{}".format(label),(int(bbox[0]),int(bbox[1] - 10)),cv2.FONT_HERSHEY_PLAIN,4,(255,255,255),3)
+            except:
+                pass
         
         #repeat for second half
         try:
@@ -504,7 +507,7 @@ class Annotator_2D():
            
              
            cur_frame = self.cur_frame.copy()
-           cur_frame = cv2.resize(cur_frame,(cur_frame.shape[1]//self.plot_ds,cur_frame.shape[0]//self.plot_ds))
+           #cur_frame = cv2.resize(cur_frame,(cur_frame.shape[1]//self.plot_ds,cur_frame.shape[0]//self.plot_ds))
            cv2.imshow("window", cur_frame)
            title = "Frame {}/{} of {}/{}".format(self.frame_num1,self.length1,self.frame_num2,self.length2)
            cv2.setWindowTitle("window",str(title))
@@ -531,9 +534,11 @@ if __name__ == "__main__":
     # sequence2 = "/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p2c5_00001.mp4"
     # label_dir = "/home/worklab/Documents/derek/i24-dataset-gen/output"
     
-    sequence1 = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/p1c5_00000.mp4"
-    sequence2 = "/home/worklab/Data/cv/video/ground_truth_video_06162021/trimmed/p1c4_00000.mp4"
-    label_dir = "/home/worklab/Data/dataset_alpha"
+    sequence1 = "/home/worklab/Data/cv/video/08_06_2021/record_51_p1c2_00000.mp4"
+    sequence2 = "/home/worklab/Data/cv/video/08_06_2021/record_51_p1c3_00000.mp4"
+    label_dir = "/home/worklab/Data/cv/video/08_06_2021/rectified"
+    
+    
     #test_path = "C:\\Users\\derek\\Desktop\\2D to 3D conversion Examples April 2021-selected\\record_p1c2_00000.mp4"
     ann = Annotator_2D(sequence1,sequence2,label_dir)
     ann.run()
