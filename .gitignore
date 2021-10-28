@@ -15,3 +15,5 @@ DATA/labels/
 
 *.avi
 annotate/__pycache__/vp_utils.cpython-36.pyc
+
+*.png
