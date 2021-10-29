@@ -374,11 +374,149 @@ class Transform_Labeler():
                self.remove()
            elif key == ord("l"):
                self.load()
-                      
+
+def compute_EB_WB_offset(directory ):
+    """
+    EB and WB transforms are defined relative to different origins. Calculate the offset
+    that must be added to each WB transform space coordinate to unify the coordinate system
+    
+    directory - (string) path to directory containing transform point files
+    """  
+    running_offsets = np.zeros(2)     
+    count = 0             
+    for p in [1,2,3]:
+        for c in [1,2,3,4,5,6]:
+            WB_path = os.path.join(directory,"p{}c{}_WB_im_lmcs_transform_points.csv".format(p,c))
+            EB_path = os.path.join(directory,"p{}c{}_EB_im_lmcs_transform_points.csv".format(p,c))
+            
+            if os.path.exists(WB_path) and os.path.exists(EB_path):
+                # load points from each    
+                WB_im_pts = []
+                WB_lmcs_pts = []
+                with open(WB_path,"r") as f:
+                    lines = f.readlines()
+                    for line in lines[1:-4]:
+                        line = line.rstrip("\n").split(",")
+                        WB_im_pts.append ([float(line[0]),float(line[1])])
+                        WB_lmcs_pts.append([float(line[2]),float(line[3])])
+                WB_im_pts = np.array(WB_im_pts)
+                WB_lmcs_pts = np.array(WB_lmcs_pts)
+                
+                EB_im_pts = []
+                EB_lmcs_pts = []
+                with open(EB_path,"r") as f:
+                    lines = f.readlines()
+                    for line in lines[1:-4]:
+                        line = line.rstrip("\n").split(",")
+                        EB_im_pts.append ([float(line[0]),float(line[1])])
+                        EB_lmcs_pts.append([float(line[2]),float(line[3])])
+                EB_im_pts = np.array(EB_im_pts)
+                EB_lmcs_pts = np.array(EB_lmcs_pts)
+                
+                # get H for EB transform
+                H,_ = cv2.findHomography(EB_im_pts,EB_lmcs_pts)
+                WB_from_EB = Transform_Labeler.transform_pt_array(None,WB_im_pts,H)
+                
+                offset = WB_from_EB - WB_lmcs_pts
+                offset = np.mean(offset,axis = 0)
+                running_offsets += offset
+                count += 1
+                # transform WB_im pts using EB transform
+    
+    running_offsets /= count
+    print("WB coordinate system is offset from EB coordinate system by ({} ft, {} ft)".format(running_offsets[0],running_offsets[1]))
+    
+    running_error = np.zeros(2)
+    # test average point deviation across transforms
+    for p in [1,2,3]:
+        for c in [1,2,3,4,5,6]:
+            WB_path = os.path.join(directory,"p{}c{}_WB_im_lmcs_transform_points.csv".format(p,c))
+            EB_path = os.path.join(directory,"p{}c{}_EB_im_lmcs_transform_points.csv".format(p,c))
+            
+            if os.path.exists(WB_path) and os.path.exists(EB_path):
+                # load points from each    
+                WB_im_pts = []
+                WB_lmcs_pts = []
+                with open(WB_path,"r") as f:
+                    lines = f.readlines()
+                    for line in lines[1:-4]:
+                        line = line.rstrip("\n").split(",")
+                        WB_im_pts.append ([float(line[0]),float(line[1])])
+                        WB_lmcs_pts.append([float(line[2]),float(line[3])])
+                WB_im_pts = np.array(WB_im_pts)
+                WB_lmcs_pts = np.array(WB_lmcs_pts)
+                
+                EB_im_pts = []
+                EB_lmcs_pts = []
+                with open(EB_path,"r") as f:
+                    lines = f.readlines()
+                    for line in lines[1:-4]:
+                        line = line.rstrip("\n").split(",")
+                        EB_im_pts.append ([float(line[0]),float(line[1])])
+                        EB_lmcs_pts.append([float(line[2]),float(line[3])])
+                EB_im_pts = np.array(EB_im_pts)
+                EB_lmcs_pts = np.array(EB_lmcs_pts)
+                
+                # get H for EB transform
+                H,_ = cv2.findHomography(EB_im_pts,EB_lmcs_pts)
+                WB_from_EB = Transform_Labeler.transform_pt_array(None,WB_im_pts,H)
+                WB_offset = WB_lmcs_pts + running_offsets
+                
+                diff = np.mean(np.abs(WB_from_EB - WB_offset),axis = 0)
+                running_error += diff
+    
+    print("Average error between coordinate systems: {}".format(running_error/count))
+    
+    return running_offsets       
+
+def offset_all_tforms(directory):
+    """
+    Gets average offset between transform spaces, and offsets WB transforms to coincide in space with EB
+    """
+    
+    offsets = compute_EB_WB_offset(directory)
+    
+    for p in [1,2,3]:
+        for c in [1,2,3,4,5,6]:
+            WB_path = os.path.join(directory,"p{}c{}_WB_im_lmcs_transform_points.csv".format(p,c))
+            
+            if os.path.exists(WB_path):
+                # load points from each    
+                WB_im_pts = []
+                WB_lmcs_pts = []
+                with open(WB_path,"r") as f:
+                    lines = f.readlines()
+                    for line in lines[1:-4]:
+                        line = line.rstrip("\n").split(",")
+                        WB_im_pts.append ([float(line[0]),float(line[1])])
+                        WB_lmcs_pts.append([int(line[2]),int(line[3])])
+                WB_im_pts = np.array(WB_im_pts)
+                WB_lmcs_pts = np.array(WB_lmcs_pts).astype(float)
+                
+                WB_lmcs_pts += offsets
+                H,mask = cv2.findHomography(WB_im_pts,WB_lmcs_pts)
+
+                
+                save_points = []
+                for idx in range(len(WB_im_pts)):
+                    point = [WB_im_pts[idx][0] , WB_im_pts[idx][1] , WB_lmcs_pts[idx][0] , WB_lmcs_pts[idx][1]]
+                    save_points.append(point)
+                
+                with open(WB_path,"w") as f:
+                    writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+                    writer.writerow(["im x", "im y", "roadway x", "roadway y"])
+                    writer.writerows(save_points)
+                    writer.writerow(["im space-> roadway marking coordinate system Homography Matrix"])
+                    writer.writerows(H)
+        
 
 tfl  = Transform_Labeler("/home/worklab/Data/cv/video/5_min_18_cam_October_2020/ingest_session_00005/recording/record_p1c5_00000.mp4",ds = 2)
 #tfl = Transform_Labeler("/home/worklab/Data/cv/video/ground_truth_video_06162021/record_47_p1c5_00000.mp4",ds = 2)
-tfl.run()
+#tfl.run()
+
+directory = "/home/worklab/Documents/derek/i24-dataset-gen/DATA/tform2"
+compute_EB_WB_offset(directory)
+#offset_all_tforms(directory)
 
 '''
 The calculated homography can be used to warp
